@@ -270,10 +270,7 @@ public class BufferedEconomy {
 	// Whether or not to show this on player actionbar or on chat
 	boolean showInActionbar = ToggleBarHandling.getActionBarToggle().getOrDefault(playerUUID.toString(),
 		Jobs.getGCManager().ActionBarsMessageByDefault);
-	if (showInActionbar) {
+	if (showInActionbar)
 	    ActionBarManager.send(abp, message);
-	} else {
-	    abp.sendMessage(message);
-	}
     }
 }
