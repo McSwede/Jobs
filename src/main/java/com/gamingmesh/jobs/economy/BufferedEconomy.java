@@ -272,5 +272,6 @@ public class BufferedEconomy {
 		Jobs.getGCManager().ActionBarsMessageByDefault);
 	if (showInActionbar)
 	    ActionBarManager.send(abp, message);
+	//Remove chat messages
     }
 }
