@@ -5,7 +5,7 @@
 	<modelVersion>4.0.0</modelVersion>
 	<groupId>Jobs</groupId>
 	<artifactId>jobs</artifactId>
-	<version>4.17.1</version>
+	<version>4.17.2</version>
 	<name>Jobs</name>
 	<url>http://maven.apache.org</url>
 
@@ -41,6 +41,12 @@
 					<artifactId>asm</artifactId>
 				</exclusion>
 			</exclusions>
+		</dependency>
+		<dependency>
+			<groupId>com.mojang</groupId>
+			<artifactId>authlib</artifactId>
+			<version>1.5.21</version>
+			<scope>provided</scope>
 		</dependency>
 		<!-- McMMO -->
 		<dependency>
@@ -226,16 +232,18 @@
 			<id>papermc</id>
 			<url>https://papermc.io/repo/repository/maven-public/</url>
 		</repository>
+		<repository>
+			<id>minecraft-repo</id>
+			<url>https://libraries.minecraft.net/</url>
+		</repository>
 		<!-- PlaceholderAPI -->
 		<repository>
 			<id>placeholderapi</id>
 			<url>https://repo.extendedclip.com/content/repositories/placeholderapi/</url>
 		</repository>
 		<!-- MyPet -->
-		<!--<repository>
-			<id>mypet-repo</id>
-			<url>https://repo.mypet-plugin.de/</url>
-		</repositor>-->
+		<!--<repository> <id>mypet-repo</id> <url>https://repo.mypet-plugin.de/</url> 
+			</repositor> -->
 	</repositories>
 	<!-- Builds Plugin -->
 	<build>
@@ -259,14 +267,14 @@
 					<target>1.8</target>
 				</configuration>
 			</plugin>
-<!-- 			<plugin> -->
-<!-- 				<groupId>org.apache.maven.plugins</groupId> -->
-<!-- 				<artifactId>maven-jar-plugin</artifactId> -->
-<!-- 				<version>2.3.1</version> -->
-<!-- 				<configuration> -->
-<!-- 					<outputDirectory>D:\MC\Server 1.16\plugins\</outputDirectory> -->
-<!-- 				</configuration> -->
-<!-- 			</plugin> -->
+			<!--<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-jar-plugin</artifactId>
+				<version>2.3.1</version>
+				<configuration>
+					<outputDirectory>D:\MC\Server 1.16\plugins\</outputDirectory>
+				</configuration>
+			</plugin>-->
 		</plugins>
 	</build>
 </project>

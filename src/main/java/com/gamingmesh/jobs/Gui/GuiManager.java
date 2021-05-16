@@ -91,7 +91,7 @@ public class GuiManager {
 	    Job job = jobsList.get(i);
 	    List<String> lore = new ArrayList<>();
 
-	    for (JobProgression onePJob : jPlayer.getJobProgression()) {
+	    for (JobProgression onePJob : jPlayer.progression) {
 		if (onePJob.getJob().getName().equalsIgnoreCase(job.getName())) {
 		    lore.add(Jobs.getLanguage().getMessage("command.info.gui.working"));
 		    break;
@@ -105,11 +105,14 @@ public class GuiManager {
 	    if (Jobs.getGCManager().ShowTotalWorkers)
 		lore.add(Jobs.getLanguage().getMessage("command.browse.output.totalWorkers", "[amount]", job.getTotalPlayers()));
 
-	    if (Jobs.getGCManager().useDynamicPayment && Jobs.getGCManager().ShowPenaltyBonus)
-		if (job.getBonus() < 0)
-		    lore.add(Jobs.getLanguage().getMessage("command.browse.output.penalty", "[amount]", (int) (job.getBonus() * 100) * -1));
+	    if (Jobs.getGCManager().useDynamicPayment && Jobs.getGCManager().ShowPenaltyBonus) {
+		double bonus = job.getBonus();
+
+		if (bonus < 0)
+		    lore.add(Jobs.getLanguage().getMessage("command.browse.output.penalty", "[amount]", (int) (bonus * 100) * -1));
 		else
-		    lore.add(Jobs.getLanguage().getMessage("command.browse.output.bonus", "[amount]", (int) (job.getBonus() * 100)));
+		    lore.add(Jobs.getLanguage().getMessage("command.browse.output.bonus", "[amount]", (int) (bonus * 100)));
+	    }
 
 	    if (job.getDescription().isEmpty()) {
 		lore.addAll(job.getFullDescription());
@@ -127,6 +130,7 @@ public class GuiManager {
 
 		for (ActionType actionType : ActionType.values()) {
 		    List<JobInfo> info = job.getJobInfo(actionType);
+
 		    if (info != null && !info.isEmpty()) {
 			lore.add(Jobs.getLanguage().getMessage("command.info.output." + actionType.getName().toLowerCase() + ".info"));
 		    }
@@ -141,8 +145,8 @@ public class GuiManager {
 
 	    ItemStack guiItem = job.getGuiItem();
 	    ItemMeta meta = guiItem.getItemMeta();
-	    plugin.getComplement().setDisplayName(meta, job.getNameWithColor());
-	    plugin.getComplement().setLore(meta, lore);
+	    meta.setDisplayName(job.getJobDisplayName());
+	    meta.setLore(lore);
 
 	    if (Jobs.getGCManager().hideItemAttributes) {
 		meta.addItemFlags(org.bukkit.inventory.ItemFlag.HIDE_ATTRIBUTES, org.bukkit.inventory.ItemFlag.HIDE_ENCHANTS);
@@ -210,7 +214,7 @@ public class GuiManager {
 	ItemStack guiItem = job.getGuiItem();
 
 	int level = prog != null ? prog.getLevel() : 1,
-	    numjobs = jPlayer.getJobProgression().size(),
+	    numjobs = jPlayer.progression.size(),
 	    nextButton = Jobs.getGCManager().getJobsGUINextButton(),
 	    backButton = Jobs.getGCManager().getJobsGUIBackButton();
 
@@ -275,8 +279,8 @@ public class GuiManager {
 			continue;
 
 		    ItemMeta meta = guiItem.getItemMeta();
-		    plugin.getComplement().setDisplayName(meta, job.getNameWithColor());
-		    plugin.getComplement().setLore(meta, lore);
+		    meta.setDisplayName(job.getJobDisplayName());
+		    meta.setLore(lore);
 		    guiItem.setItemMeta(meta);
 		    tempInv.setItem(i, guiItem.clone());
 
@@ -295,8 +299,8 @@ public class GuiManager {
 	    }
 
 	    ItemMeta meta = guiItem.getItemMeta();
-	    plugin.getComplement().setDisplayName(meta, job.getNameWithColor());
-	    plugin.getComplement().setLore(meta, lore);
+	    meta.setDisplayName(job.getJobDisplayName());
+	    meta.setLore(lore);
 	    guiItem.setItemMeta(meta);
 	    tempInv.setItem(i, guiItem.clone());
 	    i++;
@@ -327,7 +331,7 @@ public class GuiManager {
 	    ItemStack back = Jobs.getGCManager().guiBackButton;
 	    ItemMeta meta = back.getItemMeta();
 
-	    plugin.getComplement().setDisplayName(meta, Jobs.getLanguage().getMessage("command.info.gui.back"));
+	    meta.setDisplayName(Jobs.getLanguage().getMessage("command.info.gui.back"));
 	    back.setItemMeta(meta);
 
 	    gui.addButton(new CMIGuiButton(backButton, back) {
@@ -342,7 +346,7 @@ public class GuiManager {
 	ItemStack next = Jobs.getGCManager().guiNextButton;
 	ItemMeta meta = next.getItemMeta();
 
-	plugin.getComplement().setDisplayName(meta, Jobs.getLanguage().getMessage("command.info.gui.next"));
+	meta.setDisplayName(Jobs.getLanguage().getMessage("command.info.gui.next"));
 	next.setItemMeta(meta);
 
 	gui.addButton(new CMIGuiButton(nextButton, next) {
@@ -363,7 +367,7 @@ public class GuiManager {
 	JobsPlayer jPlayer = Jobs.getPlayerManager().getJobsPlayer(player);
 	Boost boost = Jobs.getPlayerManager().getFinalBonus(jPlayer, job);
 
-	int numjobs = jPlayer.getJobProgression().size();
+	int numjobs = jPlayer.progression.size();
 	int level = jPlayer.getJobProgression(job) != null ? jPlayer.getJobProgression(job).getLevel() : 1;
 
 	ItemStack guiItem = job.getGuiItem();
@@ -426,8 +430,8 @@ public class GuiManager {
 		    }
 
 		    ItemMeta meta = guiItem.getItemMeta();
-		    plugin.getComplement().setDisplayName(meta, job.getNameWithColor());
-		    plugin.getComplement().setLore(meta, lore);
+		    meta.setDisplayName(job.getJobDisplayName());
+		    meta.setLore(lore);
 		    guiItem.setItemMeta(meta);
 		    tempInv.setItem(i, guiItem.clone());
 
@@ -445,8 +449,8 @@ public class GuiManager {
 	    }
 
 	    ItemMeta meta = guiItem.getItemMeta();
-	    plugin.getComplement().setDisplayName(meta, job.getNameWithColor());
-	    plugin.getComplement().setLore(meta, lore);
+	    meta.setDisplayName(job.getJobDisplayName());
+	    meta.setLore(lore);
 	    guiItem.setItemMeta(meta);
 	    tempInv.setItem(i, guiItem.clone());
 	    i++;
@@ -477,7 +481,7 @@ public class GuiManager {
 	ItemStack skull = Jobs.getGCManager().guiBackButton;
 	ItemMeta skullMeta = skull.getItemMeta();
 
-	plugin.getComplement().setDisplayName(skullMeta, Jobs.getLanguage().getMessage("command.info.gui.back"));
+	skullMeta.setDisplayName(Jobs.getLanguage().getMessage("command.info.gui.back"));
 	skull.setItemMeta(skullMeta);
 
 	gui.addButton(new CMIGuiButton(backButton, skull) {

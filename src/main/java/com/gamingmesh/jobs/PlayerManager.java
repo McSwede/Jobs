@@ -129,20 +129,18 @@ public class PlayerManager {
     public void addPlayerToCache(JobsPlayer jPlayer) {
 	String jName = jPlayer.getName().toLowerCase();
 
-	if (!playersCache.containsKey(jName))
-	    playersCache.put(jName, jPlayer);
+	playersCache.put(jName, jPlayer);
 
-	if (jPlayer.getUniqueId() != null && !playersUUIDCache.containsKey(jPlayer.getUniqueId()))
+	if (jPlayer.getUniqueId() != null)
 	    playersUUIDCache.put(jPlayer.getUniqueId(), jPlayer);
     }
 
     public void addPlayer(JobsPlayer jPlayer) {
 	String jName = jPlayer.getName().toLowerCase();
 
-	if (!players.containsKey(jName))
-	    players.put(jName, jPlayer);
+	players.put(jName, jPlayer);
 
-	if (jPlayer.getUniqueId() != null && !playersUUID.containsKey(jPlayer.getUniqueId()))
+	if (jPlayer.getUniqueId() != null)
 	    playersUUID.put(jPlayer.getUniqueId(), jPlayer);
     }
 
@@ -309,7 +307,8 @@ public class PlayerManager {
 	Iterator<JobsPlayer> iter = players.values().iterator();
 	while (iter.hasNext()) {
 	    JobsPlayer jPlayer = iter.next();
-	    if (!jPlayer.isOnline() && jPlayer.isSaved())
+
+	    if (jPlayer.isSaved() && !jPlayer.isOnline())
 		iter.remove();
 	}
 
@@ -461,7 +460,7 @@ public class PlayerManager {
      * @param job {@link Job}
      */
     public void joinJob(JobsPlayer jPlayer, Job job) {
-	if (jPlayer == null || jPlayer.isInJob(job))
+	if (jPlayer == null)
 	    return;
 
 	// let the user join the job
@@ -504,6 +503,7 @@ public class PlayerManager {
 	    return false;
 
 	Jobs.getJobsDAO().recordToArchive(jPlayer, job);
+
 	// let the user leave the job
 	if (!jPlayer.leaveJob(job))
 	    return false;
@@ -643,7 +643,7 @@ public class PlayerManager {
 	if (prog.getLevel() < oldLevel) {
 	    String message = Jobs.getLanguage().getMessage("message.leveldown.message");
 
-	    message = message.replace("%jobname%", job.getNameWithColor());
+	    message = message.replace("%jobname%", job.getJobDisplayName());
 	    message = message.replace("%playername%", player != null ? plugin.getComplement().getDisplayName(player) : jPlayer.getName());
 	    message = message.replace("%joblevel%", Integer.toString(prog.getLevel()));
 	    message = message.replace("%lostLevel%", Integer.toString(oldLevel));
@@ -678,8 +678,10 @@ public class PlayerManager {
 	    Jobs.getGCManager().SoundTitleChangeSound,
 	    Jobs.getGCManager().SoundTitleChangeVolume,
 	    Jobs.getGCManager().SoundTitleChangePitch);
+
 	Bukkit.getServer().getPluginManager().callEvent(levelUpEvent);
-	// If event is canceled, dont do anything
+
+	// If event is cancelled, don't do anything
 	if (levelUpEvent.isCancelled())
 	    return;
 
@@ -746,7 +748,7 @@ public class PlayerManager {
 	String message = Jobs.getLanguage().getMessage("message.levelup." + (Jobs.getGCManager().isBroadcastingLevelups()
 	    ? "broadcast" : "nobroadcast"));
 
-	message = message.replace("%jobname%", job.getNameWithColor());
+	message = message.replace("%jobname%", job.getJobDisplayName());
 
 	if (levelUpEvent.getOldTitle() != null)
 	    message = message.replace("%titlename%", levelUpEvent.getOldTitle()
@@ -786,7 +788,7 @@ public class PlayerManager {
 	    message = message.replace("%playername%", player != null ? plugin.getComplement().getDisplayName(player) : jPlayer.getName());
 	    message = message.replace("%titlename%", levelUpEvent.getNewTitle()
 		.getChatColor().toString() + levelUpEvent.getNewTitle().getName());
-	    message = message.replace("%jobname%", job.getNameWithColor());
+	    message = message.replace("%jobname%", job.getJobDisplayName());
 
 	    for (String line : message.split("\n")) {
 		if (Jobs.getGCManager().isBroadcastingSkillups()) {
@@ -822,12 +824,12 @@ public class PlayerManager {
 		    command = split[1];
 		    command = command.replace("[playerName]", player.getName());
 		    command = command.replace("[job]", job.getName());
-		}
 
-		if (split[0].equalsIgnoreCase("player:")) {
-		    player.performCommand(command);
-		} else {
-		    Bukkit.dispatchCommand(Bukkit.getConsoleSender(), command);
+		    if (split[0].equalsIgnoreCase("player:")) {
+			player.performCommand(command);
+		    } else {
+			Bukkit.dispatchCommand(Bukkit.getConsoleSender(), command);
+		    }
 		}
 	    }
 	}
@@ -884,7 +886,7 @@ public class PlayerManager {
 	    return Jobs.getGCManager().getMaxJobs();
 	}
 
-	int max = Jobs.getPermissionManager().getMaxPermission(jPlayer, "jobs.max", false).intValue();
+	int max = (int) Jobs.getPermissionManager().getMaxPermission(jPlayer, "jobs.max", false);
 	return max == 0 ? Jobs.getGCManager().getMaxJobs() : max;
     }
 
@@ -948,9 +950,10 @@ public class PlayerManager {
 	return c.getBoostMultiplier();
     }
 
-    public BoostMultiplier getInventoryBoost(Player player, Job prog) {
+    public BoostMultiplier getInventoryBoost(Player player, Job job) {
 	BoostMultiplier data = new BoostMultiplier();
-	if (player == null || prog == null)
+
+	if (player == null || job == null)
 	    return data;
 
 	ItemStack iih;
@@ -976,9 +979,11 @@ public class PlayerManager {
 	    }
 	}
 
+	JobProgression progress = getJobsPlayer(player).getJobProgression(job);
+
 	for (JobItems jitem : jitems) {
-	    if (jitem != null && jitem.getJobs().contains(prog)) {
-		data.add(jitem.getBoost(getJobsPlayer(player).getJobProgression(prog)));
+	    if (jitem != null && jitem.getJobs().contains(job)) {
+		data.add(jitem.getBoost(progress));
 	    }
 	}
 
@@ -1096,7 +1101,7 @@ public class PlayerManager {
 	    boost.add(BoostOf.Item, getItemBoostNBT(pl, prog));
 	}
 
-	if (!Jobs.getRestrictedAreaManager().getRestrictedAres().isEmpty())
+	if (!Jobs.getRestrictedAreaManager().getRestrictedAreas().isEmpty())
 	    boost.add(BoostOf.Area, new BoostMultiplier().add(Jobs.getRestrictedAreaManager().getRestrictedMultiplier(pl)));
 
 	return boost;

@@ -28,16 +28,11 @@ import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 
-import com.gamingmesh.jobs.Jobs;
 import com.gamingmesh.jobs.CMILib.CMIChatColor;
 import com.gamingmesh.jobs.CMILib.CMIMaterial;
 
 public class JobLimitedItems {
     private String node;
-    @Deprecated
-    private int id;
-    @Deprecated
-    private int data;
     CMIMaterial mat;
     private int amount;
     private String name;
@@ -45,15 +40,14 @@ public class JobLimitedItems {
     private Map<Enchantment, Integer> enchants;
     private int level;
 
-    public JobLimitedItems(String node, int id, int data, int amount, String name, List<String> lore, Map<Enchantment, Integer> enchants, int level) {
+    public JobLimitedItems(String node, CMIMaterial material, int amount, String name, List<String> lore, Map<Enchantment, Integer> enchants, int level) {
 	this.node = node;
-	this.id = id;
-	this.data = data;
 	this.amount = amount;
 	this.name = name;
 	this.lore = lore;
 	this.enchants = enchants;
 	this.level = level;
+	this.mat = material;
     }
 
     public String getNode() {
@@ -61,7 +55,6 @@ public class JobLimitedItems {
     }
 
     public ItemStack getItemStack(Player player) {
-	mat = CMIMaterial.get(id, data);
 
 	ItemStack item = mat.newItemStack();
 	item.setAmount(amount);
@@ -71,10 +64,8 @@ public class JobLimitedItems {
 	    return item;
 	}
 
-	Jobs plugin = org.bukkit.plugin.java.JavaPlugin.getPlugin(Jobs.class);
-
 	if (name != null)
-	    plugin.getComplement().setDisplayName(meta, CMIChatColor.translate(name));
+	    meta.setDisplayName(CMIChatColor.translate(name));
 
 	if (lore != null && !lore.isEmpty()) {
 	    List<String> translatedLore = new ArrayList<>();
@@ -82,7 +73,7 @@ public class JobLimitedItems {
 		translatedLore.add(CMIChatColor.translate(oneLore.replace("[player]", player.getName())));
 	    }
 
-	    plugin.getComplement().setLore(meta, translatedLore);
+	    meta.setLore(translatedLore);
 	}
 
 	if (enchants != null)
@@ -96,7 +87,7 @@ public class JobLimitedItems {
 
     @Deprecated
     public int getId() {
-	return id;
+	return mat.getId();
     }
 
     public CMIMaterial getType(){

@@ -97,6 +97,8 @@ public class Jobs extends JavaPlugin {
 
     private final Set<BlockOwnerShip> blockOwnerShips = new HashSet<>();
 
+    private boolean kyoriSupported = false;
+
     private CMIScoreboardManager cmiScoreboardManager;
     private Complement complement;
     private GuiManager guiManager;
@@ -120,6 +122,10 @@ public class Jobs extends JavaPlugin {
 
     public Complement getComplement() {
 	return complement;
+    }
+
+    public boolean isKyoriSupported() {
+	return kyoriSupported;
     }
 
 	/**
@@ -246,7 +252,7 @@ public class Jobs extends JavaPlugin {
 
     public static ShopManager getShopManager() {
 	if (shopManager == null) {
-	    shopManager = new ShopManager(instance);
+	    shopManager = new ShopManager();
 	}
 	return shopManager;
     }
@@ -439,8 +445,9 @@ public class Jobs extends JavaPlugin {
     }
 
     /**
-     * Retrieves the list of active jobs
-     * @return list of jobs
+     * Returns the list of available jobs.
+     * 
+     * @return an unmodifiable list of jobs
      */
     public static List<Job> getJobs() {
 	return Collections.unmodifiableList(jobs);
@@ -470,6 +477,8 @@ public class Jobs extends JavaPlugin {
     public static Job getJob(String jobName) {
 	for (Job job : jobs) {
 	    if (job.getName().equalsIgnoreCase(jobName))
+		return job;
+	    if (job.getJobFullName().equalsIgnoreCase(jobName))
 		return job;
 	}
 	return null;
@@ -514,6 +523,7 @@ public class Jobs extends JavaPlugin {
 	    Map<Integer, Map<String, Log>> playersLogs = dao.getAllLogs();
 	    Map<Integer, ArchivedJobs> playersArchives = dao.getAllArchivedJobs();
 	    Map<Integer, PaymentData> playersLimits = dao.loadPlayerLimits();
+
 	    for (Iterator<PlayerInfo> it = temp.values().iterator(); it.hasNext();) {
 		PlayerInfo one = it.next();
 		int id = one.getID();
@@ -693,6 +703,12 @@ public class Jobs extends JavaPlugin {
 	    return;
 	}
 
+	try {
+	    Class.forName("net.kyori.adventure.text.Component");
+	    kyoriSupported = true;
+	} catch (ClassNotFoundException e) {
+	}
+
 	placeholderAPIEnabled = setupPlaceHolderAPI();
 
 	try {
@@ -727,13 +743,6 @@ public class Jobs extends JavaPlugin {
 
 	    if (getGCManager().useBlockProtection) {
 		getServer().getPluginManager().registerEvents(new PistonProtectionListener(), this);
-	    }
-
-	    boolean kyoriSupported = false;
-	    try {
-		Class.forName("net.kyori.adventure.text.serializer.plain.PlainComponentSerializer");
-		kyoriSupported = true;
-	    } catch (ClassNotFoundException e) {
 	    }
 
 	    if (Version.isCurrentEqualOrHigher(Version.v1_16_R3) && kyoriSupported) {
@@ -881,7 +890,6 @@ public class Jobs extends JavaPlugin {
 	}
 
 	instance = null;
-	consoleMsg("&e[Jobs] &2Plugin has been disabled successfully.");
     }
 
     private static void checkDailyQuests(JobsPlayer jPlayer, Job job, ActionInfo info) {
@@ -1468,7 +1476,9 @@ public class Jobs extends JavaPlugin {
 	nextPage = currentPage < pageCount ? nextPage : currentPage;
 
 	int prevpage = currentPage - 1;
-	prevpage = currentPage > 1 ? prevpage : currentPage;
+	if (currentPage <= 1) {
+	    prevpage = currentPage;
+	}
 
 	RawMessage rm = new RawMessage()
 	    .addText((currentPage > 1 ? lManager.getMessage("command.help.output.prevPage") : lManager.getMessage("command.help.output.prevPageOff")))

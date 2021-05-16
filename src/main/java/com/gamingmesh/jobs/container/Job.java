@@ -53,6 +53,7 @@ public class Job {
     private Map<String, JobLimitedItems> jobLimitedItems;
 
     private String jobName = "N/A";
+    private String jobDisplayName;
     private String fullName = "N/A";
 
     // job short name (for use in multiple jobs)
@@ -86,16 +87,18 @@ public class Job {
 
     private final List<String> fDescription = new ArrayList<>(), maxLevelCommands = new ArrayList<>();
     private List<String> worldBlacklist = new ArrayList<>();
+    private boolean reversedWorldBlacklist = false;
 
     private final List<Quest> quests = new ArrayList<>();
     private int maxDailyQuests = 1;
     private int id = 0;
+    private boolean ignoreMaxJobs = false;
 
     @Deprecated
-    public Job(String jobName, String fullName, String jobShortName, String description, CMIChatColor jobColour, Parser maxExpEquation, DisplayMethod displayMethod, int maxLevel,
+    public Job(String jobName, String jobDisplayName, String fullName, String jobShortName, String description, CMIChatColor jobColour, Parser maxExpEquation, DisplayMethod displayMethod, int maxLevel,
 	int vipmaxLevel, Integer maxSlots, List<JobPermission> jobPermissions, List<JobCommands> jobCommands, List<JobConditions> jobConditions, Map<String, JobItems> jobItems,
 	Map<String, JobLimitedItems> jobLimitedItems, List<String> cmdOnJoin, List<String> cmdOnLeave, ItemStack guiItem, int guiSlot, String bossbar, Long rejoinCD, List<String> worldBlacklist) {
-	this(jobName, fullName, jobShortName, jobColour, maxExpEquation, displayMethod, maxLevel,
+	this(jobName, jobDisplayName, fullName, jobShortName, jobColour, maxExpEquation, displayMethod, maxLevel,
 	    vipmaxLevel, maxSlots, jobPermissions, jobCommands, jobConditions,
 	    jobLimitedItems, cmdOnJoin, cmdOnLeave, guiItem, guiSlot, worldBlacklist);
 
@@ -103,7 +106,7 @@ public class Job {
 	this.description = description;
     }
 
-    public Job(String jobName, String fullName, String jobShortName, CMIChatColor jobColour, Parser maxExpEquation, DisplayMethod displayMethod, int maxLevel,
+    public Job(String jobName, String jobDisplayName, String fullName, String jobShortName, CMIChatColor jobColour, Parser maxExpEquation, DisplayMethod displayMethod, int maxLevel,
 	int vipmaxLevel, Integer maxSlots, List<JobPermission> jobPermissions, List<JobCommands> jobCommands, List<JobConditions> jobConditions,
 	Map<String, JobLimitedItems> jobLimitedItems, List<String> cmdOnJoin, List<String> cmdOnLeave, ItemStack guiItem, int guiSlot, List<String> worldBlacklist) {
 	this.jobName = jobName == null ? "" : jobName;
@@ -123,6 +126,7 @@ public class Job {
 	this.cmdOnLeave = cmdOnLeave;
 	this.guiItem = guiItem;
 	this.guiSlot = guiSlot;
+	this.jobDisplayName = CMIChatColor.translate(jobDisplayName);
 
 	if (worldBlacklist != null) {
 	    this.worldBlacklist = worldBlacklist;
@@ -324,25 +328,31 @@ public class Job {
     }
 
     /**
-     * Returns the full job name
+     * Returns the name of this job
      * 
-     * @return the full job name
+     * @return the name of this job
      */
     public String getName() {
+	return jobName;
+    }
+
+    public String getJobFullName() {
 	return fullName;
     }
 
-    public String getNameWithColor() {
-	return jobColour + fullName;
+    public String getJobDisplayName() {
+	return jobDisplayName == null ? jobColour + fullName : jobDisplayName;
     }
 
     /**
-     * Returns the job name retrieved from the config
+     * Return the job full name with the set of color.
      * 
-     * @return the job key name from config section
+     * @return the full name with color
+     * @deprecated use {@link #getJobDisplayName()} instead
      */
-    public String getJobKeyName() {
-	return jobName;
+    @Deprecated
+    public String getNameWithColor() {
+	return jobColour + fullName;
     }
 
     /**
@@ -604,7 +614,7 @@ public class Job {
 	    int target = new Random(System.nanoTime()).nextInt(100);
 	    for (Quest one : ls) {
 		if (one.getChance() >= target && (excludeQuests == null || !excludeQuests.contains(one.getConfigName().toLowerCase()))
-			    && one.isInLevelRange(level)) {
+		    && one.isInLevelRange(level)) {
 		    return one;
 		}
 	    }
@@ -644,16 +654,36 @@ public class Job {
 
     public boolean isWorldBlackListed(Block block, Entity ent) {
 	if (worldBlacklist.isEmpty())
-	    return false;
+	    return reversedWorldBlacklist;
 
-	if (block != null && worldBlacklist.contains(block.getWorld().getName()))
-	    return true;
+	if (block != null)
+	    return worldBlacklist.contains(block.getWorld().getName()) != reversedWorldBlacklist;
 
-	return ent != null && worldBlacklist.contains(ent.getWorld().getName());
+	return ent != null && worldBlacklist.contains(ent.getWorld().getName()) != reversedWorldBlacklist;
+    }
+
+    public boolean isReversedWorldBlacklist() {
+	return reversedWorldBlacklist;
+    }
+
+    public void setReversedWorldBlacklist(boolean reversedWorldBlacklist) {
+	this.reversedWorldBlacklist = reversedWorldBlacklist;
+    }
+
+    public boolean isIgnoreMaxJobs() {
+	return ignoreMaxJobs;
+    }
+
+    public void setIgnoreMaxJobs(boolean ignoreMaxJobs) {
+	this.ignoreMaxJobs = ignoreMaxJobs;
     }
 
     @Override
     public boolean equals(Object obj) {
-	return obj instanceof Job ? isSame((Job) obj) : false;
+	return obj instanceof Job && isSame((Job) obj);
+    }
+
+    public void setJobDisplayName(String jobDisplayName) {
+	this.jobDisplayName = jobDisplayName;
     }
 }
