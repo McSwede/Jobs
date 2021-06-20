@@ -66,22 +66,24 @@ import org.bukkit.permissions.PermissionDefault;
 import org.bukkit.plugin.PluginManager;
 
 import com.gamingmesh.jobs.Jobs;
-import com.gamingmesh.jobs.CMILib.ActionBarManager;
-import com.gamingmesh.jobs.CMILib.CMIChatColor;
-import com.gamingmesh.jobs.CMILib.CMIMaterial;
-import com.gamingmesh.jobs.CMILib.Version;
 import com.gamingmesh.jobs.Signs.SignTopType;
 import com.gamingmesh.jobs.Signs.SignUtil;
 import com.gamingmesh.jobs.Signs.jobsSign;
 import com.gamingmesh.jobs.api.JobsAreaSelectionEvent;
 import com.gamingmesh.jobs.api.JobsChunkChangeEvent;
-import com.gamingmesh.jobs.container.ArmorTypes;
 import com.gamingmesh.jobs.container.Job;
 import com.gamingmesh.jobs.container.JobLimitedItems;
 import com.gamingmesh.jobs.container.JobProgression;
 import com.gamingmesh.jobs.container.JobsArmorChangeEvent;
 import com.gamingmesh.jobs.container.JobsArmorChangeEvent.EquipMethod;
 import com.gamingmesh.jobs.container.JobsPlayer;
+
+import net.Zrips.CMILib.ActionBar.CMIActionBar;
+import net.Zrips.CMILib.Colors.CMIChatColor;
+import net.Zrips.CMILib.Items.ArmorTypes;
+import net.Zrips.CMILib.Items.CMIItemStack;
+import net.Zrips.CMILib.Items.CMIMaterial;
+import net.Zrips.CMILib.Version.Version;
 
 public class JobsListener implements Listener {
 
@@ -117,7 +119,7 @@ public class JobsListener implements Listener {
 	    return;
 
 	Player player = event.getPlayer();
-	if (Jobs.getNms().getItemInMainHand(player).getType() != CMIMaterial.get(Jobs.getGCManager().getSelectionTool()).getMaterial())
+	if (CMIItemStack.getItemInMainHand(player).getType() != CMIMaterial.get(Jobs.getGCManager().getSelectionTool()).getMaterial())
 	    return;
 
 	if (!Jobs.getGCManager().canPerformActionInWorld(event.getPlayer().getWorld()) || !player.hasPermission("jobs.area.select"))
@@ -369,7 +371,7 @@ public class JobsListener implements Listener {
     @EventHandler(priority = EventPriority.LOWEST, ignoreCancelled = true)
     public void onLimitedItemInteract(PlayerInteractEvent event) {
 	Player player = event.getPlayer();
-	ItemStack iih = Jobs.getNms().getItemInMainHand(player);
+	ItemStack iih = CMIItemStack.getItemInMainHand(player);
 	if (iih.getType() == Material.AIR)
 	    return;
 
@@ -396,11 +398,13 @@ public class JobsListener implements Listener {
 	}
 
 	String meinOk = null;
+	CMIMaterial mat = CMIMaterial.get(iih);
 
 	mein: for (JobProgression one : jPlayer.getJobProgression()) {
 	    for (JobLimitedItems oneItem : one.getJob().getLimitedItems().values()) {
-		if (one.getLevel() >= oneItem.getLevel() || !isThisItem(oneItem, CMIMaterial.get(iih), name, lore, enchants))
+		if (one.getLevel() >= oneItem.getLevel() || !isThisItem(oneItem, mat, name, lore, enchants))
 		    continue;
+
 		meinOk = one.getJob().getName();
 		break mein;
 	    }
@@ -408,7 +412,7 @@ public class JobsListener implements Listener {
 
 	if (meinOk != null) {
 	    event.setCancelled(true);
-	    ActionBarManager.send(player, Jobs.getLanguage().getMessage("limitedItem.error.levelup", "[jobname]", meinOk));
+	    CMIActionBar.send(player, Jobs.getLanguage().getMessage("limitedItem.error.levelup", "[jobname]", meinOk));
 	}
     }
 
@@ -437,12 +441,9 @@ public class JobsListener implements Listener {
 	return false;
     }
 
-    @EventHandler
+    @EventHandler(ignoreCancelled = true)
     public void onChunkChangeMove(PlayerMoveEvent event) {
-	if (event.isCancelled() || !event.getPlayer().isOnline())
-	    return;
-
-	if (event.getTo() != null && !Jobs.getGCManager().canPerformActionInWorld(event.getTo().getWorld()))
+	if (!event.getPlayer().isOnline() || !Jobs.getGCManager().canPerformActionInWorld(event.getTo().getWorld()))
 	    return;
 
 	Chunk from = event.getFrom().getChunk();
@@ -451,12 +452,10 @@ public class JobsListener implements Listener {
 	    plugin.getServer().getPluginManager().callEvent(new JobsChunkChangeEvent(event.getPlayer(), from, to));
     }
 
-    @EventHandler
+    @EventHandler(ignoreCancelled = true)
     public void onInventoryClick(InventoryClickEvent event) {
-	if (event.isCancelled())
-	    return;
-
 	boolean shift = false, numberkey = false;
+
 	if (event.getClick() == ClickType.SHIFT_LEFT || event.getClick() == ClickType.SHIFT_RIGHT)
 	    shift = true;
 
@@ -563,11 +562,8 @@ public class JobsListener implements Listener {
 	}
     }
 
-    @EventHandler
+    @EventHandler(ignoreCancelled = true)
     public void dispenserFireEvent(BlockDispenseEvent event) {
-	if (event.isCancelled())
-	    return;
-
 	ItemStack item = event.getItem();
 	ArmorTypes type = ArmorTypes.matchType(item);
 	if (type == null)

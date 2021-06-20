@@ -28,10 +28,8 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.ThreadLocalRandom;
 
-import org.bukkit.Bukkit;
 import org.bukkit.Color;
 import org.bukkit.FireworkEffect;
-import org.bukkit.Sound;
 import org.bukkit.FireworkEffect.Type;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.Firework;
@@ -41,9 +39,6 @@ import org.bukkit.entity.Tameable;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.FireworkMeta;
 
-import com.gamingmesh.jobs.CMILib.Version;
-import com.gamingmesh.jobs.CMILib.ActionBarManager;
-import com.gamingmesh.jobs.CMILib.CMIReflections;
 import com.gamingmesh.jobs.api.JobsJoinEvent;
 import com.gamingmesh.jobs.api.JobsLeaveEvent;
 import com.gamingmesh.jobs.api.JobsLevelUpEvent;
@@ -51,7 +46,6 @@ import com.gamingmesh.jobs.container.ArchivedJobs;
 import com.gamingmesh.jobs.container.Boost;
 import com.gamingmesh.jobs.container.BoostMultiplier;
 import com.gamingmesh.jobs.container.CurrencyType;
-import com.gamingmesh.jobs.container.ItemBonusCache;
 import com.gamingmesh.jobs.container.Job;
 import com.gamingmesh.jobs.container.JobCommands;
 import com.gamingmesh.jobs.container.JobItems;
@@ -66,6 +60,11 @@ import com.gamingmesh.jobs.economy.PaymentData;
 import com.gamingmesh.jobs.hooks.HookManager;
 import com.gamingmesh.jobs.stuff.PerformCommands;
 import com.gamingmesh.jobs.stuff.Util;
+
+import net.Zrips.CMILib.ActionBar.CMIActionBar;
+import net.Zrips.CMILib.Items.CMIItemStack;
+import net.Zrips.CMILib.NBT.CMINBT;
+import net.Zrips.CMILib.Version.Version;
 
 public class PlayerManager {
 
@@ -469,7 +468,7 @@ public class PlayerManager {
 
 	// JobsJoin event
 	JobsJoinEvent jobsJoinEvent = new JobsJoinEvent(jPlayer, job);
-	Bukkit.getServer().getPluginManager().callEvent(jobsJoinEvent);
+	plugin.getServer().getPluginManager().callEvent(jobsJoinEvent);
 	// If event is canceled, dont do anything
 	if (jobsJoinEvent.isCancelled())
 	    return;
@@ -497,7 +496,7 @@ public class PlayerManager {
 	    return false;
 
 	JobsLeaveEvent jobsLeaveEvent = new JobsLeaveEvent(jPlayer, job);
-	Bukkit.getServer().getPluginManager().callEvent(jobsLeaveEvent);
+	plugin.getServer().getPluginManager().callEvent(jobsLeaveEvent);
 	// If event is canceled, don't do anything
 	if (jobsLeaveEvent.isCancelled())
 	    return false;
@@ -648,10 +647,10 @@ public class PlayerManager {
 	    message = message.replace("%joblevel%", Integer.toString(prog.getLevel()));
 	    message = message.replace("%lostLevel%", Integer.toString(oldLevel));
 
-	    if (player != null) {
+	    if (player != null && (Jobs.getGCManager().LevelChangeActionBar || Jobs.getGCManager().LevelChangeChat)) {
 		for (String line : message.split("\n")) {
 		    if (Jobs.getGCManager().LevelChangeActionBar)
-			ActionBarManager.send(player, line);
+			CMIActionBar.send(player, line);
 
 		    if (Jobs.getGCManager().LevelChangeChat)
 			player.sendMessage(line);
@@ -660,7 +659,7 @@ public class PlayerManager {
 
 	    jPlayer.reloadHonorific();
 	    Jobs.getPermissionHandler().recalculatePermissions(jPlayer);
-	    performCommandOnLevelUp(jPlayer, prog.getJob(), oldLevel);
+	    performCommandOnLevelUp(jPlayer, prog, oldLevel);
 	    Jobs.getSignUtil().updateAllSign(job);
 	    return;
 	}
@@ -679,24 +678,22 @@ public class PlayerManager {
 	    Jobs.getGCManager().SoundTitleChangeVolume,
 	    Jobs.getGCManager().SoundTitleChangePitch);
 
-	Bukkit.getServer().getPluginManager().callEvent(levelUpEvent);
+	plugin.getServer().getPluginManager().callEvent(levelUpEvent);
 
 	// If event is cancelled, don't do anything
 	if (levelUpEvent.isCancelled())
 	    return;
 
-	// If it fails, we can ignore it
-	try {
-	    if (Jobs.getGCManager().SoundLevelupUse) {
-		Sound sound = levelUpEvent.getSound();
-		if (player != null)
-		    player.getWorld().playSound(player.getLocation(), sound, levelUpEvent.getSoundVolume(), levelUpEvent.getSoundPitch());
+	if (player != null && Jobs.getGCManager().SoundLevelupUse) {
+	    try {
+		player.getWorld().playSound(player.getLocation(), levelUpEvent.getSound(),
+		    levelUpEvent.getSoundVolume(), levelUpEvent.getSoundPitch());
+	    } catch (Exception e) { // If it fails, we can ignore it
 	    }
-	} catch (Exception e) {
 	}
 
 	if (Jobs.getGCManager().FireworkLevelupUse && player != null) {
-	    Bukkit.getServer().getScheduler().runTaskLater(plugin, new Runnable() {
+	    plugin.getServer().getScheduler().runTaskLater(plugin, new Runnable() {
 		@Override
 		public void run() {
 		    if (!player.isOnline())
@@ -757,30 +754,31 @@ public class PlayerManager {
 	message = message.replace("%playername%", player != null ? plugin.getComplement().getDisplayName(player) : jPlayer.getName());
 	message = message.replace("%joblevel%", Integer.toString(prog.getLevel()));
 
-	for (String line : message.split("\n")) {
-	    if (Jobs.getGCManager().isBroadcastingLevelups()) {
-		if (Jobs.getGCManager().BroadcastingLevelUpLevels.contains(oldLevel + 1) || Jobs.getGCManager().BroadcastingLevelUpLevels.contains(0))
-		    plugin.getComplement().broadcastMessage(line);
-	    } else if (player != null) {
-		if (Jobs.getGCManager().LevelChangeActionBar)
-		    ActionBarManager.send(player, line);
-		if (Jobs.getGCManager().LevelChangeChat)
-		    player.sendMessage(line);
+	if (Jobs.getGCManager().isBroadcastingLevelups() || Jobs.getGCManager().LevelChangeActionBar || Jobs.getGCManager().LevelChangeChat) {
+	    for (String line : message.split("\n")) {
+		if (Jobs.getGCManager().isBroadcastingLevelups()) {
+		    if (Jobs.getGCManager().BroadcastingLevelUpLevels.contains(oldLevel + 1)
+			|| Jobs.getGCManager().BroadcastingLevelUpLevels.contains(0))
+			plugin.getComplement().broadcastMessage(line);
+		} else if (player != null) {
+		    if (Jobs.getGCManager().LevelChangeActionBar)
+			CMIActionBar.send(player, line);
+
+		    if (Jobs.getGCManager().LevelChangeChat)
+			player.sendMessage(line);
+		}
 	    }
 	}
 
 	if (levelUpEvent.getNewTitle() != null && !levelUpEvent.getNewTitle().equals(levelUpEvent.getOldTitle())) {
-
-	    // If it fails, we can ignore it
-	    try {
-		if (Jobs.getGCManager().SoundTitleChangeUse) {
-		    Sound sound = levelUpEvent.getTitleChangeSound();
-		    if (player != null)
-			player.getWorld().playSound(player.getLocation(), sound, levelUpEvent.getTitleChangeVolume(),
-			    levelUpEvent.getTitleChangePitch());
+	    if (player != null && Jobs.getGCManager().SoundTitleChangeUse) {
+		try {
+		    player.getWorld().playSound(player.getLocation(), levelUpEvent.getTitleChangeSound(), levelUpEvent.getTitleChangeVolume(),
+			levelUpEvent.getTitleChangePitch());
+		} catch (Exception e) { // If it fails, we can ignore it
 		}
-	    } catch (Exception e) {
 	    }
+
 	    // user would skill up
 	    message = Jobs.getLanguage().getMessage("message.skillup." + (Jobs.getGCManager().isBroadcastingSkillups()
 		? "broadcast" : "nobroadcast"));
@@ -790,21 +788,24 @@ public class PlayerManager {
 		.getChatColor().toString() + levelUpEvent.getNewTitle().getName());
 	    message = message.replace("%jobname%", job.getJobDisplayName());
 
-	    for (String line : message.split("\n")) {
-		if (Jobs.getGCManager().isBroadcastingSkillups()) {
-		    plugin.getComplement().broadcastMessage(line);
-		} else if (player != null) {
-		    if (Jobs.getGCManager().TitleChangeActionBar)
-			ActionBarManager.send(player, line);
-		    if (Jobs.getGCManager().TitleChangeChat)
-			player.sendMessage(line);
+	    if (Jobs.getGCManager().isBroadcastingSkillups() || Jobs.getGCManager().TitleChangeActionBar || Jobs.getGCManager().TitleChangeChat) {
+		for (String line : message.split("\n")) {
+		    if (Jobs.getGCManager().isBroadcastingSkillups()) {
+			plugin.getComplement().broadcastMessage(line);
+		    } else if (player != null) {
+			if (Jobs.getGCManager().TitleChangeActionBar)
+			    CMIActionBar.send(player, line);
+
+			if (Jobs.getGCManager().TitleChangeChat)
+			    player.sendMessage(line);
+		    }
 		}
 	    }
 	}
 
 	jPlayer.reloadHonorific();
 	Jobs.getPermissionHandler().recalculatePermissions(jPlayer);
-	performCommandOnLevelUp(jPlayer, prog.getJob(), oldLevel);
+	performCommandOnLevelUp(jPlayer, prog, oldLevel);
 	Jobs.getSignUtil().updateAllSign(job);
 
 	if (player != null && !job.getMaxLevelCommands().isEmpty() && prog.getLevel() == jPlayer.getMaxJobLevelAllowed(prog.getJob())) {
@@ -815,7 +816,7 @@ public class PlayerManager {
 
 		String[] split = cmd.split(":", 2);
 		if (split.length == 0) {
-		    Bukkit.dispatchCommand(Bukkit.getConsoleSender(), cmd);
+		    plugin.getServer().dispatchCommand(plugin.getServer().getConsoleSender(), cmd);
 		    continue;
 		}
 
@@ -828,7 +829,7 @@ public class PlayerManager {
 		    if (split[0].equalsIgnoreCase("player:")) {
 			player.performCommand(command);
 		    } else {
-			Bukkit.dispatchCommand(Bukkit.getConsoleSender(), command);
+			plugin.getServer().dispatchCommand(plugin.getServer().getConsoleSender(), command);
 		    }
 		}
 	    }
@@ -842,23 +843,22 @@ public class PlayerManager {
      * @param job {@link Job}
      * @param oldLevel
      */
-    public void performCommandOnLevelUp(JobsPlayer jPlayer, Job job, int oldLevel) {
-	JobProgression prog = jPlayer.getJobProgression(job);
-	if (prog == null)
-	    return;
-
+    public void performCommandOnLevelUp(JobsPlayer jPlayer, JobProgression prog, int oldLevel) {
 	int newLevel = oldLevel + 1;
-	Player player = Bukkit.getPlayer(jPlayer.getUniqueId());
+	Player player = plugin.getServer().getPlayer(jPlayer.getUniqueId());
 
-	for (JobCommands command : job.getCommands()) {
-	    if ((command.getLevelFrom() == 0 && command.getLevelUntil() == 0) || newLevel >= command.getLevelFrom()
-		&& newLevel <= command.getLevelUntil()) {
+	for (JobCommands command : prog.getJob().getCommands()) {
+	    if ((command.getLevelFrom() == 0 && command.getLevelUntil() == 0) || (newLevel >= command.getLevelFrom()
+		&& newLevel <= command.getLevelUntil())) {
 		for (String commandString : new ArrayList<>(command.getCommands())) {
-		    commandString = commandString.replace("[player]", player.getName());
+		    if (player != null)
+			commandString = commandString.replace("[player]", player.getName());
+
 		    commandString = commandString.replace("[oldlevel]", Integer.toString(oldLevel));
 		    commandString = commandString.replace("[newlevel]", Integer.toString(newLevel));
-		    commandString = commandString.replace("[jobname]", job.getName());
-		    Bukkit.dispatchCommand(Bukkit.getConsoleSender(), commandString);
+		    commandString = commandString.replace("[jobname]", prog.getJob().getName());
+
+		    plugin.getServer().dispatchCommand(plugin.getServer().getConsoleSender(), commandString);
 		}
 	    }
 	}
@@ -928,26 +928,24 @@ public class PlayerManager {
 	}
     }
 
-    private final Map<UUID, Map<Job, ItemBonusCache>> cache = new HashMap<>();
+    private final Map<UUID, Map<Job, BoostMultiplier>> cache = new HashMap<>();
 
     public void resetItemBonusCache(UUID uuid) {
 	cache.remove(uuid);
     }
 
     public BoostMultiplier getItemBoostNBT(Player player, Job prog) {
-	Map<Job, ItemBonusCache> cj = cache.get(player.getUniqueId());
+	Map<Job, BoostMultiplier> cj = cache.get(player.getUniqueId());
 	if (cj == null) {
-	    cj = new HashMap<>();
-	    cache.put(player.getUniqueId(), cj);
+	    cache.put(player.getUniqueId(), cj = new HashMap<>());
 	}
 
-	ItemBonusCache c = cj.get(prog);
-	if (c == null) {
-	    c = new ItemBonusCache(getInventoryBoost(player, prog));
-	    cj.put(prog, c);
+	BoostMultiplier boost = cj.get(prog);
+	if (boost == null) {
+	    cj.put(prog, boost = getInventoryBoost(player, prog));
 	}
 
-	return c.getBoostMultiplier();
+	return boost;
     }
 
     public BoostMultiplier getInventoryBoost(Player player, Job job) {
@@ -956,18 +954,16 @@ public class PlayerManager {
 	if (player == null || job == null)
 	    return data;
 
-	ItemStack iih;
 	List<JobItems> jitems = new ArrayList<>();
 
 	// Check mainhand slot
-	if (Jobs.getGCManager().boostedItemsInMainHand && (iih = Jobs.getNms().getItemInMainHand(player)) != null) {
-	    jitems.add(getJobsItemByNbt(iih));
+	if (Jobs.getGCManager().boostedItemsInMainHand) {
+	    jitems.add(getJobsItemByNbt(CMIItemStack.getItemInMainHand(player)));
 	}
 
 	// Check offhand slot
-	if (Version.isCurrentEqualOrHigher(Version.v1_9_R1) && Jobs.getGCManager().boostedItemsInOffHand
-		&& (iih = CMIReflections.getItemInOffHand(player)) != null) {
-	    jitems.add(getJobsItemByNbt(iih));
+	if (Version.isCurrentEqualOrHigher(Version.v1_9_R1) && Jobs.getGCManager().boostedItemsInOffHand) {
+	    jitems.add(getJobsItemByNbt(player.getInventory().getItemInOffHand()));
 	}
 
 	// Check armor slots
@@ -988,29 +984,29 @@ public class PlayerManager {
 	}
 
 	return data;
-}
+    }
 
     private final String jobsItemBoost = "JobsItemBoost";
 
     public boolean containsItemBoostByNBT(ItemStack item) {
-	return item != null && Jobs.getReflections().hasNbtString(item, jobsItemBoost);
+	return item != null && new CMINBT(item).hasNBT(jobsItemBoost);
     }
 
     public JobItems getJobsItemByNbt(ItemStack item) {
 	if (item == null)
 	    return null;
 
-	Object itemName = CMIReflections.getNbt(item, jobsItemBoost);
+	Object itemName = new CMINBT(item).getString(jobsItemBoost);
 
 	if (itemName == null || itemName.toString().isEmpty()) {
 	    // Checking old boost items and converting to new format if needed
-	    if (Jobs.getReflections().hasNbt(item, jobsItemBoost)) {
+	    if (new CMINBT(item).hasNBT(jobsItemBoost)) {
 		for (Job one : Jobs.getJobs()) {
-		    itemName = Jobs.getReflections().getNbt(item, jobsItemBoost, one.getName());
+		    itemName = new CMINBT(item).getString(jobsItemBoost + "." + one.getName());
 		    if (itemName != null) {
 			JobItems b = ItemBoostManager.getItemByKey(itemName.toString());
 			if (b != null) {
-			    ItemStack ic = CMIReflections.setNbt(item, jobsItemBoost, b.getNode());
+			    ItemStack ic = (ItemStack) new CMINBT(item).setString(jobsItemBoost, b.getNode());
 			    item.setItemMeta(ic.getItemMeta());
 			}
 			break;
@@ -1111,7 +1107,7 @@ public class PlayerManager {
 	if (!Jobs.getGCManager().AutoJobJoinUse || player == null || player.isOp())
 	    return;
 
-	Bukkit.getServer().getScheduler().runTaskLater(plugin, new Runnable() {
+	plugin.getServer().getScheduler().runTaskLater(plugin, new Runnable() {
 	    @Override
 	    public void run() {
 		if (!player.isOnline())

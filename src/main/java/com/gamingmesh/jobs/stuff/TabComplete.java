@@ -8,6 +8,7 @@ import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
 import org.bukkit.command.TabCompleter;
 import org.bukkit.entity.Player;
+import org.bukkit.util.StringUtil;
 
 import com.gamingmesh.jobs.ItemBoostManager;
 import com.gamingmesh.jobs.Jobs;
@@ -19,20 +20,21 @@ import com.gamingmesh.jobs.container.JobProgression;
 import com.gamingmesh.jobs.container.JobsPlayer;
 import com.gamingmesh.jobs.container.Quest;
 
-public class TabComplete implements TabCompleter {
+public final class TabComplete implements TabCompleter {
 
     @Override
     public List<String> onTabComplete(CommandSender sender, Command command, String label, String[] args) {
-	if (args.length == 1) {
-	    return new ArrayList<>(Jobs.getCommandManager().getCommands(sender));
-	}
+	List<String> completionList = new ArrayList<>();
 
-	if (args.length > 1) {
+	if (args.length == 1) {
+	    StringUtil.copyPartialMatches(args[0], Jobs.getCommandManager().getCommands(sender), completionList);
+	} else if (args.length > 1) {
 	    String first = args[0].toLowerCase();
 
 	    for (int i = 1; i <= args.length; i++) {
 		if (args.length == i + 1) {
 		    List<String> argsList = Jobs.getGCManager().getCommandArgs().get(first);
+
 		    if (argsList == null)
 			break;
 
@@ -42,14 +44,16 @@ public class TabComplete implements TabCompleter {
 		    String arg = argsList.get(i - 1);
 		    List<String> t2 = new ArrayList<>();
 
-		    if (arg.contains("%%"))
-			for (String one : arg.split("%%")) {
+		    String[] split = arg.split("%%");
+		    if (split.length > 0)
+			for (String one : split) {
 			    t2.add(one);
 			}
 		    else
 			t2.add(arg);
 
 		    List<String> temp = new ArrayList<>();
+
 		    for (String ar : t2) {
 			switch (ar) {
 			case "[scheduleName]":
@@ -61,17 +65,26 @@ public class TabComplete implements TabCompleter {
 			case "[questname]":
 			case "[quest]":
 			    Job job = Jobs.getJob(args[i - 1]);
+
 			    if (job != null) {
 				for (Quest q : job.getQuests()) {
 				    temp.add(q.getQuestName());
 				}
 			    }
+
 			    break;
 			case "[jobname]":
 			case "[newjob]":
 			    for (Job one : Jobs.getJobs()) {
 				temp.add(one.getName());
 			    }
+
+			    break;
+			case "[jobfullname]":
+			    for (Job one : Jobs.getJobs()) {
+				temp.add(one.getJobFullName());
+			    }
+
 			    break;
 			case "[playername]":
 			    for (Player player : Bukkit.getOnlinePlayers()) {
@@ -93,33 +106,39 @@ public class TabComplete implements TabCompleter {
 			    for (JobItems one : ItemBoostManager.getItems().values()) {
 				temp.add(one.getNode());
 			    }
+
 			    if (args.length > 3 && args[3].equalsIgnoreCase("limiteditems")) {
 				Job oneJob = Jobs.getJob(args[i - 1]);
+
 				if (oneJob != null)
 				    for (JobLimitedItems limitedItem : oneJob.getLimitedItems().values()) {
 					temp.add(limitedItem.getNode());
 				    }
 			    }
+
 			    break;
 			case "[boosteditems]":
 			    for (JobItems one : ItemBoostManager.getItems().values()) {
 				temp.add(one.getNode());
 			    }
+
 			    break;
 			case "[oldjob]":
 			    JobsPlayer onePlayerJob = Jobs.getPlayerManager().getJobsPlayer(args[i - 1]);
+
 			    if (onePlayerJob != null)
 				for (JobProgression oneOldJob : onePlayerJob.getJobProgression()) {
 				    temp.add(oneOldJob.getJob().getName());
 				}
+
 			    break;
 			case "[oldplayerjob]":
-			    if (sender instanceof Player) {
-				if ((onePlayerJob = Jobs.getPlayerManager().getJobsPlayer((Player) sender)) != null)
-				    for (JobProgression oneOldJob : onePlayerJob.getJobProgression()) {
-					temp.add(oneOldJob.getJob().getName());
-				    }
+			    if (sender instanceof Player && (onePlayerJob = Jobs.getPlayerManager().getJobsPlayer((Player) sender)) != null) {
+				for (JobProgression oneOldJob : onePlayerJob.getJobProgression()) {
+				    temp.add(oneOldJob.getJob().getName());
+				}
 			    }
+
 			    break;
 			default:
 			    temp.add(ar);
@@ -127,11 +146,12 @@ public class TabComplete implements TabCompleter {
 			}
 		    }
 
-		    return temp;
+		    StringUtil.copyPartialMatches(args[i], temp, completionList);
 		}
 	    }
 	}
 
-	return null;
+	java.util.Collections.sort(completionList);
+	return completionList;
     }
 }

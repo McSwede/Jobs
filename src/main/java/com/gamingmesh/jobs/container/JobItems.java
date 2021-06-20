@@ -34,10 +34,10 @@ import org.bukkit.inventory.meta.LeatherArmorMeta;
 import org.bukkit.inventory.meta.PotionMeta;
 import org.bukkit.potion.PotionEffectType;
 
-import com.gamingmesh.jobs.CMILib.CMIChatColor;
-import com.gamingmesh.jobs.CMILib.CMIMaterial;
-import com.gamingmesh.jobs.CMILib.CMIReflections;
-import com.gamingmesh.jobs.CMILib.Version;
+import net.Zrips.CMILib.Colors.CMIChatColor;
+import net.Zrips.CMILib.Items.CMIMaterial;
+import net.Zrips.CMILib.NBT.CMINBT;
+import net.Zrips.CMILib.Version.Version;
 
 @SuppressWarnings("deprecation")
 public class JobItems {
@@ -80,20 +80,21 @@ public class JobItems {
 	setJobs(jobs);
 
 	ItemMeta meta = (item = mat.newItemStack()).getItemMeta();
-	if (potion != null && CMIMaterial.isPotion(mat.getMaterial()) && meta instanceof PotionMeta) {
+	if (potion != null && meta instanceof PotionMeta && CMIMaterial.isPotion(mat.getMaterial())) {
 	    PotionMeta potionMeta = (PotionMeta) meta;
 
 	    if (Version.isCurrentEqualOrHigher(Version.v1_10_R1) && potion instanceof org.bukkit.potion.PotionData) {
 		potionMeta.setBasePotionData((org.bukkit.potion.PotionData) potion);
 	    } else if (potion instanceof org.bukkit.potion.Potion) {
 		PotionEffectType effectType = ((org.bukkit.potion.Potion) potion).getType().getEffectType();
+
 		if (effectType != null) {
 		    potionMeta.setMainEffect(effectType);
 		}
 	    }
 
 	    meta = potionMeta;
-	} else if (leatherColor != null && CMIMaterial.isLeatherArmor(mat.getMaterial()) && meta instanceof LeatherArmorMeta) {
+	} else if (leatherColor != null && meta instanceof LeatherArmorMeta && CMIMaterial.isLeatherArmor(mat.getMaterial())) {
 	    LeatherArmorMeta armorMeta = (LeatherArmorMeta) meta;
 	    armorMeta.setColor(this.leatherColor = leatherColor);
 	    meta = armorMeta;
@@ -123,7 +124,8 @@ public class JobItems {
 	}
 
 	item.setAmount(amount);
-	item = CMIReflections.setNbt(item, "JobsItemBoost", node);
+	CMINBT nbt = new CMINBT(item);
+	item = (ItemStack) nbt.setString("JobsItemBoost", node);
     }
 
     public String getNode() {
@@ -140,13 +142,14 @@ public class JobItems {
 	    return item;
 	}
 
-	if (CMIMaterial.isPotion(item.getType()) && potion != null && meta instanceof PotionMeta) {
+	if (potion != null && CMIMaterial.isPotion(item.getType()) && meta instanceof PotionMeta) {
 	    PotionMeta potionMeta = (PotionMeta) meta;
 
 	    if (Version.isCurrentEqualOrHigher(Version.v1_10_R1) && potion instanceof org.bukkit.potion.PotionData) {
 		potionMeta.setBasePotionData((org.bukkit.potion.PotionData) potion);
 	    } else if (potion instanceof org.bukkit.potion.Potion) {
 		PotionEffectType effectType = ((org.bukkit.potion.Potion) potion).getType().getEffectType();
+
 		if (effectType != null) {
 		    potionMeta.setMainEffect(effectType);
 		}

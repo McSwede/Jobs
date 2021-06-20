@@ -7,9 +7,10 @@ import java.util.List;
 import org.bukkit.configuration.ConfigurationSection;
 
 import com.gamingmesh.jobs.Jobs;
-import com.gamingmesh.jobs.CMILib.CMIChatColor;
-import com.gamingmesh.jobs.CMILib.ConfigReader;
 import com.gamingmesh.jobs.container.Title;
+
+import net.Zrips.CMILib.Colors.CMIChatColor;
+import net.Zrips.CMILib.FileHandler.ConfigReader;
 
 public class TitleManager {
 
@@ -43,7 +44,13 @@ public class TitleManager {
     void load() {
 	titles.clear();
 
-	ConfigReader c = new ConfigReader("titleConfig.yml");
+	ConfigReader c;
+	try {
+	    c = new ConfigReader(Jobs.getInstance(), "titleConfig.yml");
+	} catch (Exception e) {
+	    e.printStackTrace();
+	    return;
+	}
 	c.copyDefaults(true);
 
 	c.header(Arrays.asList(
@@ -148,7 +155,8 @@ public class TitleManager {
 		titles.add(new Title(titleName, titleShortName, titleColor, levelReq, titleSection.getString(titleKey + ".JobName")));
 	    }
 
-	if (titles.size() > 0)
-	    Jobs.consoleMsg("&e[Jobs] Loaded " + titles.size() + " titles!");
+	int size = titles.size();
+	if (size > 0)
+	    Jobs.consoleMsg("&e[Jobs] Loaded " + size + " titles!");
     }
 }

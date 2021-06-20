@@ -74,6 +74,7 @@ public class Placeholder {
 	user_canjoin_$1("jname/number"),
 	user_jlevel_$1("jname/number"),
 	user_jexp_$1("jname/number"),
+	user_jexp_rounded_$1("jname/number"),
 	user_jmaxexp_$1("jname/number"),
 	user_jexpunf_$1("jname/number"),
 	user_jmaxexpunf_$1("jname/number"),
@@ -84,12 +85,11 @@ public class Placeholder {
 	user_archived_jobs_exp_$1("jname/number"),
 
 	maxjobs,
+	total_workers,
 
 	limit_$1("money/exp/points"),
 	plimit_$1("money/exp/points"),
 	plimit_tleft_$1("money/exp/points"),
-
-	total_workers,
 
 	name_$1("jname/number"),
 	shortname_$1("jname/number"),
@@ -105,7 +105,6 @@ public class Placeholder {
 	private String[] vars;
 	private List<Integer> groups = new ArrayList<>();
 	private ChatFilterRule rule;
-	private boolean hidden = false;
 
 	JobsPlaceHolders(String... vars) {
 	    Matcher matcher = numericalRule.getMatcher(toString());
@@ -126,7 +125,6 @@ public class Placeholder {
 	    }
 
 	    this.vars = vars;
-	    this.hidden = false;
 	}
 
 	public static JobsPlaceHolders getByName(String name) {
@@ -249,7 +247,8 @@ public class Placeholder {
 
 	public List<String> getComplexValues(String text) {
 	    List<String> lsInLs = new ArrayList<>();
-	    if (!isComplex() || text == null)
+
+	    if (text == null || !isComplex())
 		return lsInLs;
 
 	    Matcher matcher = rule.getMatcher(text);
@@ -275,10 +274,6 @@ public class Placeholder {
 
 	public void setRule(ChatFilterRule rule) {
 	    this.rule = rule;
-	}
-
-	public boolean isHidden() {
-	    return hidden;
 	}
     }
 
@@ -393,13 +388,13 @@ public class Placeholder {
 	    int id = Integer.parseInt(value);
 	    if (id > 0)
 		return Jobs.getJobs().get(id - 1);
-	} catch (Exception e) {
+	} catch (IndexOutOfBoundsException | NumberFormatException e) {
 	    return Jobs.getJob(value);
 	}
 	return null;
     }
 
-    private static String simplifyDouble(double value) {
+    private String simplifyDouble(double value) {
 	return String.valueOf((int) (value * 100) / 100D);
     }
 
@@ -448,8 +443,7 @@ public class Placeholder {
 	    case user_totallevels:
 		return Integer.toString(user.getTotalLevels());
 	    case user_points:
-		DecimalFormat dec = new DecimalFormat("00.0");
-		return dec.format(user.getPointsData().getCurrentPoints());
+		return new DecimalFormat("00.0").format(user.getPointsData().getCurrentPoints());
 	    case user_points_fixed:
 		return Integer.toString((int) user.getPointsData().getCurrentPoints());
 	    case user_total_points:
@@ -513,6 +507,8 @@ public class Placeholder {
 		    return j == null ? "0" : Integer.toString(j.getLevel());
 		case user_jexp_$1:
 		    return j == null ? "0" : format.format(j.getExperience());
+		case user_jexp_rounded_$1:
+		    return j == null ? "0" : new DecimalFormat("##.###").format(j.getExperience());
 		case user_jmaxexp_$1:
 		    return j == null ? "0" : format.format(j.getMaxExperience());
 		case user_jexpunf_$1:

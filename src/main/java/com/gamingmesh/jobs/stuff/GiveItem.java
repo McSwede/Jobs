@@ -10,10 +10,10 @@ import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.EnchantmentStorageMeta;
 import org.bukkit.inventory.meta.ItemMeta;
 
-import com.gamingmesh.jobs.CMILib.CMIChatColor;
-import com.gamingmesh.jobs.CMILib.CMIMaterial;
+import net.Zrips.CMILib.Colors.CMIChatColor;
+import net.Zrips.CMILib.Items.CMIMaterial;
 
-public class GiveItem {
+public final class GiveItem {
 
     public static void giveItemForPlayer(Player player, int id, int meta, int qty, String name, List<String> lore,
 	    java.util.Map<Enchantment, Integer> enchants) {

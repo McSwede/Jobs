@@ -11,7 +11,9 @@ import com.gamingmesh.jobs.Jobs;
 import com.gamingmesh.jobs.commands.Cmd;
 import com.gamingmesh.jobs.container.Job;
 import com.gamingmesh.jobs.container.TopList;
-import com.gamingmesh.jobs.stuff.PageInfo;
+
+import net.Zrips.CMILib.Container.PageInfo;
+import net.Zrips.CMILib.Scoreboards.CMIScoreboard;
 
 public class top implements Cmd {
 
@@ -30,7 +32,7 @@ public class top implements Cmd {
 	Player player = (Player) sender;
 	if (args[0].equalsIgnoreCase("clear")) {
 	    player.getScoreboard().clearSlot(DisplaySlot.SIDEBAR);
-	    plugin.getCMIScoreboardManager().removeScoreBoard(player);
+	    CMIScoreboard.removeScoreBoard(player);
 	    return true;
 	}
 
@@ -89,8 +91,7 @@ public class top implements Cmd {
 		place++;
 	    }
 
-	    plugin.getCMIScoreboardManager().setScoreBoard(player, Jobs.getLanguage().getMessage("scoreboard.topline", "%jobname%", job.getName()), ls);
-	    plugin.getCMIScoreboardManager().addNew(player);
+	    CMIScoreboard.show(player, Jobs.getLanguage().getMessage("scoreboard.topline", "%jobname%", job.getName()), ls, Jobs.getGCManager().ToplistInScoreboardInterval);
 
 	    plugin.showPagination(sender, pi, "jobs top " + job.getName());
 	}

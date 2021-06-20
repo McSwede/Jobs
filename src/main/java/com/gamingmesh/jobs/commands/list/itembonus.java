@@ -14,10 +14,13 @@ import com.gamingmesh.jobs.container.BoostMultiplier;
 import com.gamingmesh.jobs.container.CurrencyType;
 import com.gamingmesh.jobs.container.Job;
 import com.gamingmesh.jobs.container.JobItems;
+import com.gamingmesh.jobs.container.JobProgression;
 import com.gamingmesh.jobs.container.JobsPlayer;
-import com.gamingmesh.jobs.CMILib.CMIChatColor;
-import com.gamingmesh.jobs.CMILib.CMIMaterial;
-import com.gamingmesh.jobs.CMILib.RawMessage;
+
+import net.Zrips.CMILib.Colors.CMIChatColor;
+import net.Zrips.CMILib.Items.CMIItemStack;
+import net.Zrips.CMILib.Items.CMIMaterial;
+import net.Zrips.CMILib.RawMessages.RawMessage;
 
 public class itembonus implements Cmd {
 
@@ -34,17 +37,16 @@ public class itembonus implements Cmd {
 	if (jPlayer == null)
 	    return false;
 
-	ItemStack iih = Jobs.getNms().getItemInMainHand(player);
+	ItemStack iih = CMIItemStack.getItemInMainHand(player);
 
 	List<ItemStack> items = new ArrayList<>();
 
 	if (iih != null && iih.getType() != Material.AIR)
 	    items.add(iih);
 
-	for (ItemStack OneArmor : player.getInventory().getArmorContents()) {
-	    if (OneArmor == null || OneArmor.getType() == Material.AIR)
-		continue;
-	    items.add(OneArmor);
+	for (ItemStack oneArmor : player.getInventory().getArmorContents()) {
+	    if (oneArmor != null && oneArmor.getType() != Material.AIR)
+		items.add(oneArmor);
 	}
 
 	sender.sendMessage(Jobs.getLanguage().getMessage("command.bonus.output.topline"));
@@ -55,12 +57,15 @@ public class itembonus implements Cmd {
 		continue;
 
 	    for (Job one : jitem.getJobs()) {
-		BoostMultiplier boost = !jPlayer.isInJob(one) ? jitem.getBoost() : jitem.getBoost(jPlayer.getJobProgression(one));
+		JobProgression prog = jPlayer.getJobProgression(one);
+		BoostMultiplier boost = prog == null ? jitem.getBoost() : jitem.getBoost(prog);
 
 		boolean any = false;
 		for (CurrencyType oneC : CurrencyType.values()) {
-		    if (boost.get(oneC) != 0D)
+		    if (boost.get(oneC) != 0D) {
 			any = true;
+			break;
+		    }
 		}
 
 		if (!any)
@@ -71,7 +76,7 @@ public class itembonus implements Cmd {
 		    ec = CMIChatColor.YELLOW.toString(),
 		    msg = null;
 
-		if (jPlayer.isInJob(one))
+		if (prog != null)
 		    msg = Jobs.getLanguage().getMessage("command.itembonus.output.list",
 			"[jobname]", one.getName(),
 			"%money%", mc + formatText((int) (boost.get(CurrencyType.MONEY) * 100)),

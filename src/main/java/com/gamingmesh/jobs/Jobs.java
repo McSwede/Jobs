@@ -18,42 +18,21 @@
 
 package com.gamingmesh.jobs;
 
-import com.gamingmesh.jobs.CMILib.RawMessage;
-import com.gamingmesh.jobs.CMILib.Version;
-import com.gamingmesh.jobs.CMILib.ActionBarManager;
-import com.gamingmesh.jobs.CMILib.CMIChatColor;
-import com.gamingmesh.jobs.CMILib.CMIMaterial;
-import com.gamingmesh.jobs.CMILib.CMIReflections;
-import com.gamingmesh.jobs.CMILib.VersionChecker;
-import com.gamingmesh.jobs.Gui.GuiManager;
-import com.gamingmesh.jobs.Placeholders.PlaceholderAPIHook;
-import com.gamingmesh.jobs.Placeholders.Placeholder;
-import com.gamingmesh.jobs.hooks.HookManager;
-import com.gamingmesh.jobs.Signs.SignUtil;
-import com.gamingmesh.jobs.api.JobsExpGainEvent;
-import com.gamingmesh.jobs.api.JobsPrePaymentEvent;
-import com.gamingmesh.jobs.commands.JobsCommands;
-import com.gamingmesh.jobs.config.*;
-import com.gamingmesh.jobs.container.*;
-import com.gamingmesh.jobs.container.blockOwnerShip.BlockOwnerShip;
-import com.gamingmesh.jobs.container.blockOwnerShip.BlockTypes;
-import com.gamingmesh.jobs.dao.JobsDAO;
-import com.gamingmesh.jobs.dao.JobsDAOData;
-import com.gamingmesh.jobs.dao.JobsManager;
-import com.gamingmesh.jobs.economy.*;
-import com.gamingmesh.jobs.i18n.Language;
-import com.gamingmesh.jobs.listeners.JobsListener;
-import com.gamingmesh.jobs.listeners.JobsPayment14Listener;
-import com.gamingmesh.jobs.listeners.JobsPaymentListener;
-import com.gamingmesh.jobs.listeners.PistonProtectionListener;
-import com.gamingmesh.jobs.selection.SelectionManager;
-import com.gamingmesh.jobs.stuff.*;
-import com.gamingmesh.jobs.stuff.complement.JobsChatEvent;
-import com.gamingmesh.jobs.stuff.complement.Complement;
-import com.gamingmesh.jobs.stuff.complement.Complement1;
-import com.gamingmesh.jobs.stuff.complement.Complement2;
-import com.gamingmesh.jobs.tasks.BufferedPaymentThread;
-import com.gamingmesh.jobs.tasks.DatabaseSaveThread;
+import java.io.File;
+import java.sql.SQLException;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.Set;
+import java.util.UUID;
+import java.util.WeakHashMap;
+import java.util.concurrent.CompletableFuture;
+import java.util.logging.Logger;
 
 import org.bukkit.Bukkit;
 import org.bukkit.block.Block;
@@ -64,13 +43,81 @@ import org.bukkit.entity.Player;
 import org.bukkit.event.HandlerList;
 import org.bukkit.plugin.java.JavaPlugin;
 
-import java.io.File;
-import java.sql.SQLException;
-import java.util.*;
-import java.util.concurrent.CompletableFuture;
-import java.util.logging.Logger;
+import com.gamingmesh.jobs.Gui.GuiManager;
+import com.gamingmesh.jobs.Placeholders.Placeholder;
+import com.gamingmesh.jobs.Placeholders.PlaceholderAPIHook;
+import com.gamingmesh.jobs.Signs.SignUtil;
+import com.gamingmesh.jobs.api.JobsExpGainEvent;
+import com.gamingmesh.jobs.api.JobsPrePaymentEvent;
+import com.gamingmesh.jobs.commands.JobsCommands;
+import com.gamingmesh.jobs.config.BlockProtectionManager;
+import com.gamingmesh.jobs.config.BossBarManager;
+import com.gamingmesh.jobs.config.ConfigManager;
+import com.gamingmesh.jobs.config.ExploreManager;
+import com.gamingmesh.jobs.config.GeneralConfigManager;
+import com.gamingmesh.jobs.config.LanguageManager;
+import com.gamingmesh.jobs.config.NameTranslatorManager;
+import com.gamingmesh.jobs.config.RestrictedAreaManager;
+import com.gamingmesh.jobs.config.RestrictedBlockManager;
+import com.gamingmesh.jobs.config.ScheduleManager;
+import com.gamingmesh.jobs.config.ShopManager;
+import com.gamingmesh.jobs.config.TitleManager;
+import com.gamingmesh.jobs.config.YmlMaker;
+import com.gamingmesh.jobs.container.ActionInfo;
+import com.gamingmesh.jobs.container.ActionType;
+import com.gamingmesh.jobs.container.ArchivedJobs;
+import com.gamingmesh.jobs.container.BlockProtection;
+import com.gamingmesh.jobs.container.Boost;
+import com.gamingmesh.jobs.container.Convert;
+import com.gamingmesh.jobs.container.CurrencyLimit;
+import com.gamingmesh.jobs.container.CurrencyType;
+import com.gamingmesh.jobs.container.DBAction;
+import com.gamingmesh.jobs.container.FastPayment;
+import com.gamingmesh.jobs.container.Job;
+import com.gamingmesh.jobs.container.JobInfo;
+import com.gamingmesh.jobs.container.JobProgression;
+import com.gamingmesh.jobs.container.JobsPlayer;
+import com.gamingmesh.jobs.container.Log;
+import com.gamingmesh.jobs.container.PlayerInfo;
+import com.gamingmesh.jobs.container.PlayerPoints;
+import com.gamingmesh.jobs.container.Quest;
+import com.gamingmesh.jobs.container.QuestProgression;
+import com.gamingmesh.jobs.container.blockOwnerShip.BlockOwnerShip;
+import com.gamingmesh.jobs.container.blockOwnerShip.BlockTypes;
+import com.gamingmesh.jobs.dao.JobsDAO;
+import com.gamingmesh.jobs.dao.JobsDAOData;
+import com.gamingmesh.jobs.dao.JobsManager;
+import com.gamingmesh.jobs.economy.BufferedEconomy;
+import com.gamingmesh.jobs.economy.BufferedPayment;
+import com.gamingmesh.jobs.economy.Economy;
+import com.gamingmesh.jobs.economy.PaymentData;
+import com.gamingmesh.jobs.economy.PointsData;
+import com.gamingmesh.jobs.hooks.HookManager;
+import com.gamingmesh.jobs.i18n.Language;
+import com.gamingmesh.jobs.listeners.JobsListener;
+import com.gamingmesh.jobs.listeners.JobsPayment14Listener;
+import com.gamingmesh.jobs.listeners.JobsPaymentListener;
+import com.gamingmesh.jobs.listeners.PistonProtectionListener;
+import com.gamingmesh.jobs.selection.SelectionManager;
+import com.gamingmesh.jobs.stuff.Loging;
+import com.gamingmesh.jobs.stuff.TabComplete;
+import com.gamingmesh.jobs.stuff.ToggleBarHandling;
+import com.gamingmesh.jobs.stuff.VersionChecker;
+import com.gamingmesh.jobs.stuff.complement.Complement;
+import com.gamingmesh.jobs.stuff.complement.Complement1;
+import com.gamingmesh.jobs.stuff.complement.Complement2;
+import com.gamingmesh.jobs.stuff.complement.JobsChatEvent;
+import com.gamingmesh.jobs.tasks.BufferedPaymentThread;
+import com.gamingmesh.jobs.tasks.DatabaseSaveThread;
 
-public class Jobs extends JavaPlugin {
+import net.Zrips.CMILib.ActionBar.CMIActionBar;
+import net.Zrips.CMILib.Colors.CMIChatColor;
+import net.Zrips.CMILib.Container.PageInfo;
+import net.Zrips.CMILib.Items.CMIMaterial;
+import net.Zrips.CMILib.RawMessages.RawMessage;
+import net.Zrips.CMILib.Version.Version;
+
+public final class Jobs extends JavaPlugin {
 
     private static PlayerManager pManager;
     private static JobsCommands cManager;
@@ -90,7 +137,7 @@ public class Jobs extends JavaPlugin {
     private static JobsManager dbManager;
     private static ConfigManager configManager;
     private static GeneralConfigManager gConfigManager;
-    private static CMIReflections reflections;
+
     private static BufferedEconomy economy;
     private static PermissionHandler permissionHandler;
     private static PermissionManager permissionManager;
@@ -99,7 +146,6 @@ public class Jobs extends JavaPlugin {
 
     private boolean kyoriSupported = false;
 
-    private CMIScoreboardManager cmiScoreboardManager;
     private Complement complement;
     private GuiManager guiManager;
 
@@ -112,8 +158,6 @@ public class Jobs extends JavaPlugin {
     private static DatabaseSaveThread saveTask;
 
     public static final Map<UUID, FastPayment> FASTPAYMENT = new HashMap<>();
-
-    private static NMS nms;
 
     protected static VersionChecker versionCheckManager;
     protected static SelectionManager smanager;
@@ -128,13 +172,13 @@ public class Jobs extends JavaPlugin {
 	return kyoriSupported;
     }
 
-	/**
-     * Returns the block owner ship for specific {@link CMIMaterial} type.
-     * 
-     * @param type {@link CMIMaterial}
-     * @see #getBlockOwnerShip(CMIMaterial, boolean)
-     * @return {@link BlockOwnerShip}, otherwise {@link Optional#empty()}
-     */
+    /**
+    * Returns the block owner ship for specific {@link CMIMaterial} type.
+    * 
+    * @param type {@link CMIMaterial}
+    * @see #getBlockOwnerShip(CMIMaterial, boolean)
+    * @return {@link BlockOwnerShip}, otherwise {@link Optional#empty()}
+    */
     public Optional<BlockOwnerShip> getBlockOwnerShip(CMIMaterial type) {
 	return getBlockOwnerShip(type, true);
     }
@@ -178,6 +222,12 @@ public class Jobs extends JavaPlugin {
 	}
 
 	return Optional.empty();
+    }
+
+    public void removeBlockOwnerShip(org.bukkit.block.Block block) {
+	for (BlockOwnerShip ship : blockOwnerShips) {
+	    ship.remove(block);
+	}
     }
 
     /**
@@ -225,12 +275,6 @@ public class Jobs extends JavaPlugin {
 	return bpManager;
     }
 
-    public static CMIReflections getReflections() {
-	if (reflections == null)
-	    reflections = new CMIReflections();
-	return reflections;
-    }
-
     public static JobsManager getDBManager() {
 	if (dbManager == null)
 	    dbManager = new JobsManager(instance);
@@ -267,10 +311,6 @@ public class Jobs extends JavaPlugin {
 	if (gConfigManager == null)
 	    gConfigManager = new GeneralConfigManager();
 	return gConfigManager;
-    }
-
-    public static NMS getNms() {
-	return nms;
     }
 
     /**
@@ -350,17 +390,6 @@ public class Jobs extends JavaPlugin {
 	if (exploreManager == null)
 	    exploreManager = new ExploreManager();
 	return exploreManager;
-    }
-
-    /**
-     * Returns scoreboard manager
-     * @return the scoreboard manager
-     */
-    public CMIScoreboardManager getCMIScoreboardManager() {
-	if (cmiScoreboardManager == null)
-	    cmiScoreboardManager = new CMIScoreboardManager();
-
-	return cmiScoreboardManager;
     }
 
     // TODO Get rid of this entirely from project
@@ -476,11 +505,10 @@ public class Jobs extends JavaPlugin {
      */
     public static Job getJob(String jobName) {
 	for (Job job : jobs) {
-	    if (job.getName().equalsIgnoreCase(jobName))
-		return job;
-	    if (job.getJobFullName().equalsIgnoreCase(jobName))
+	    if (job.getName().equalsIgnoreCase(jobName) || job.getJobFullName().equalsIgnoreCase(jobName))
 		return job;
 	}
+
 	return null;
     }
 
@@ -688,25 +716,10 @@ public class Jobs extends JavaPlugin {
 	instance = this;
 
 	try {
-	    Class<?> nmsClass = Class.forName("com.gamingmesh.jobs.nmsUtil." + Version.getCurrent().getShortVersion());
-	    if (NMS.class.isAssignableFrom(nmsClass)) {
-		nms = (NMS) nmsClass.getConstructor().newInstance();
-	    } else {
-		System.out.println("Something went wrong, please note down version and contact author, version: " + Version.getCurrent().toString());
-		setEnabled(false);
-		return;
-	    }
-	} catch (Exception e) {
-	    System.out.println("Your server version is not compatible with this plugins version! Plugin will be disabled: " + Version.getCurrent().toString());
-	    setEnabled(false);
-	    e.printStackTrace();
-	    return;
-	}
-
-	try {
 	    Class.forName("net.kyori.adventure.text.Component");
+	    org.bukkit.inventory.meta.ItemMeta.class.getDeclaredMethod("displayName");
 	    kyoriSupported = true;
-	} catch (ClassNotFoundException e) {
+	} catch (NoSuchMethodException | ClassNotFoundException e) {
 	}
 
 	placeholderAPIEnabled = setupPlaceHolderAPI();
@@ -779,8 +792,6 @@ public class Jobs extends JavaPlugin {
 	    org.bukkit.plugin.PluginManager pm = instance.getServer().getPluginManager();
 
 	    HandlerList.unregisterAll(instance);
-
-	    com.gamingmesh.jobs.CMIGUI.GUIManager.registerListener();
 
 	    if (Version.isCurrentEqualOrHigher(Version.v1_9_R1)) {
 		pm.registerEvents(new com.gamingmesh.jobs.listeners.Listener1_9(), instance);
@@ -862,10 +873,7 @@ public class Jobs extends JavaPlugin {
 
     @Override
     public void onDisable() {
-	if (instance == null)
-	    return;
-
-	HandlerList.unregisterAll(instance);
+	HandlerList.unregisterAll(this);
 
 	if (dao != null) {
 	    dao.saveExplore();
@@ -888,8 +896,6 @@ public class Jobs extends JavaPlugin {
 	if (dao != null) {
 	    dao.closeConnections();
 	}
-
-	instance = null;
     }
 
     private static void checkDailyQuests(JobsPlayer jPlayer, Job job, ActionInfo info) {
@@ -969,7 +975,6 @@ public class Jobs extends JavaPlugin {
      * @param ent {@link Entity}
      * @param victim {@link LivingEntity}
      * @param block {@link Block}
-     * @see #action(JobsPlayer, ActionInfo, Block, Entity, LivingEntity)
      */
     public static void action(JobsPlayer jPlayer, ActionInfo info, Block block, Entity ent, LivingEntity victim) {
 	if (jPlayer == null)
@@ -1040,8 +1045,8 @@ public class Jobs extends JavaPlugin {
 	    if (!jPlayer.isUnderLimit(CurrencyType.MONEY, income)) {
 		if (gConfigManager.useMaxPaymentCurve) {
 		    double percentOver = jPlayer.percentOverLimit(CurrencyType.MONEY);
-		    float factor = gConfigManager.maxPaymentCurveFactor;
-		    double percentLoss = 100 / ((1 / factor * percentOver * percentOver) + 1);
+		    double percentLoss = 100 / ((1 / gConfigManager.maxPaymentCurveFactor * percentOver * percentOver) + 1);
+
 		    income = income - (income * percentLoss / 100);
 		} else
 		    income = 0D;
@@ -1091,9 +1096,7 @@ public class Jobs extends JavaPlugin {
 		    expiredJobs.add(prog.getJob());
 		}
 
-		int level = prog.getLevel();
-
-		JobInfo jobinfo = prog.getJob().getJobInfo(info, level);
+		JobInfo jobinfo = prog.getJob().getJobInfo(info, prog.getLevel());
 
 		checkDailyQuests(jPlayer, prog.getJob(), info);
 
@@ -1101,9 +1104,9 @@ public class Jobs extends JavaPlugin {
 		    continue;
 		}
 
-		double income = jobinfo.getIncome(level, numjobs, jPlayer.maxJobsEquation);
-		double pointAmount = jobinfo.getPoints(level, numjobs, jPlayer.maxJobsEquation);
-		double expAmount = jobinfo.getExperience(level, numjobs, jPlayer.maxJobsEquation);
+		double income = jobinfo.getIncome(prog.getLevel(), numjobs, jPlayer.maxJobsEquation);
+		double pointAmount = jobinfo.getPoints(prog.getLevel(), numjobs, jPlayer.maxJobsEquation);
+		double expAmount = jobinfo.getExperience(prog.getLevel(), numjobs, jPlayer.maxJobsEquation);
 
 		if (income == 0D && pointAmount == 0D && expAmount == 0D)
 		    continue;
@@ -1306,9 +1309,9 @@ public class Jobs extends JavaPlugin {
 		}
 
 		if ((time > System.currentTimeMillis() || bp.isPaid()) && bp.getAction() != DBAction.DELETE) {
-		    int sec = Math.round((time - System.currentTimeMillis()) / 1000L);
 		    if (inform && player.canGetPaid(info)) {
-			ActionBarManager.send(player.getPlayer(), lManager.getMessage("message.blocktimer", "[time]", sec));
+			int sec = Math.round((time - System.currentTimeMillis()) / 1000L);
+			CMIActionBar.send(player.getPlayer(), lManager.getMessage("message.blocktimer", "[time]", sec));
 		    }
 
 		    return false;
@@ -1335,9 +1338,9 @@ public class Jobs extends JavaPlugin {
 		    }
 
 		    if ((time > System.currentTimeMillis() || bp.isPaid()) && bp.getAction() != DBAction.DELETE) {
-			int sec = Math.round((time - System.currentTimeMillis()) / 1000L);
 			if (inform && player.canGetPaid(info)) {
-			    ActionBarManager.send(player.getPlayer(), lManager.getMessage("message.blocktimer", "[time]", sec));
+			    int sec = Math.round((time - System.currentTimeMillis()) / 1000L);
+			    CMIActionBar.send(player.getPlayer(), lManager.getMessage("message.blocktimer", "[time]", sec));
 			}
 
 			getBpManager().add(block, cd);
@@ -1399,7 +1402,9 @@ public class Jobs extends JavaPlugin {
     }
 
     public static void perform(JobsPlayer jPlayer, ActionInfo info, BufferedPayment payment, Job job) {
-	JobsExpGainEvent jobsExpGainEvent = new JobsExpGainEvent(payment.getOfflinePlayer(), job, payment.get(CurrencyType.EXP));
+	double expPayment = payment.get(CurrencyType.EXP);
+
+	JobsExpGainEvent jobsExpGainEvent = new JobsExpGainEvent(payment.getOfflinePlayer(), job, expPayment);
 	Bukkit.getServer().getPluginManager().callEvent(jobsExpGainEvent);
 	// If event is canceled, don't do anything
 	if (jobsExpGainEvent.isCancelled())
@@ -1425,7 +1430,7 @@ public class Jobs extends JavaPlugin {
 	    getLoging().recordToLog(jPlayer, info, payment.getPayment());
 	}
 
-	if (prog.addExperience(payment.get(CurrencyType.EXP)))
+	if (prog.addExperience(expPayment))
 	    getPlayerManager().performLevelUp(jPlayer, prog.getJob(), oldLevel);
     }
 

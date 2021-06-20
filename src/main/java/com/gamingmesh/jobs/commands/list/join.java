@@ -1,6 +1,5 @@
 package com.gamingmesh.jobs.commands.list;
 
-import org.bukkit.Bukkit;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 
@@ -9,7 +8,8 @@ import com.gamingmesh.jobs.commands.Cmd;
 import com.gamingmesh.jobs.container.Job;
 import com.gamingmesh.jobs.container.JobProgression;
 import com.gamingmesh.jobs.container.JobsPlayer;
-import com.gamingmesh.jobs.CMILib.RawMessage;
+
+import net.Zrips.CMILib.RawMessages.RawMessage;
 
 public class join implements Cmd {
 
@@ -26,7 +26,7 @@ public class join implements Cmd {
 	}
 
 	if (args.length == 0) {
-	    Bukkit.dispatchCommand(sender, "jobs browse");
+	    plugin.getServer().dispatchCommand(sender, "jobs browse");
 	    return true;
 	}
 

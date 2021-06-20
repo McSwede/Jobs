@@ -5,8 +5,8 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.UUID;
 import java.util.Map.Entry;
+import java.util.UUID;
 
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
@@ -22,14 +22,7 @@ import org.bukkit.potion.PotionData;
 import org.bukkit.potion.PotionType;
 
 import com.gamingmesh.jobs.Jobs;
-import com.gamingmesh.jobs.CMIGUI.CMIGui;
-import com.gamingmesh.jobs.CMIGUI.CMIGuiButton;
-import com.gamingmesh.jobs.CMIGUI.GUIManager.GUIClickType;
-import com.gamingmesh.jobs.CMIGUI.GUIManager.GUIRows;
-import com.gamingmesh.jobs.CMILib.CMIChatColor;
 import com.gamingmesh.jobs.CMILib.CMIEnchantment;
-import com.gamingmesh.jobs.CMILib.CMIMaterial;
-import com.gamingmesh.jobs.CMILib.Version;
 import com.gamingmesh.jobs.container.BoostMultiplier;
 import com.gamingmesh.jobs.container.Job;
 import com.gamingmesh.jobs.container.JobItems;
@@ -37,6 +30,15 @@ import com.gamingmesh.jobs.container.JobProgression;
 import com.gamingmesh.jobs.container.JobsPlayer;
 import com.gamingmesh.jobs.container.ShopItem;
 import com.gamingmesh.jobs.stuff.GiveItem;
+import com.gamingmesh.jobs.stuff.Util;
+
+import net.Zrips.CMILib.Colors.CMIChatColor;
+import net.Zrips.CMILib.GUI.CMIGui;
+import net.Zrips.CMILib.GUI.CMIGuiButton;
+import net.Zrips.CMILib.GUI.GUIManager.GUIClickType;
+import net.Zrips.CMILib.GUI.GUIManager.GUIRows;
+import net.Zrips.CMILib.Items.CMIMaterial;
+import net.Zrips.CMILib.Version.Version;
 
 @SuppressWarnings("deprecation")
 public class ShopManager {
@@ -192,12 +194,12 @@ public class ShopManager {
 		skullMeta.setLore(lore);
 
 		if (item.isHeadOwner()) {
-		    Jobs.getNms().setSkullOwner(skullMeta, jPlayer.getPlayer());
+		    Util.setSkullOwner(skullMeta, jPlayer.getPlayer());
 		} else {
 		    try {
-			Jobs.getNms().setSkullOwner(skullMeta, Bukkit.getOfflinePlayer(UUID.fromString(item.getCustomHead())));
+			Util.setSkullOwner(skullMeta, Bukkit.getOfflinePlayer(UUID.fromString(item.getCustomHead())));
 		    } catch (IllegalArgumentException ex) {
-			Jobs.getNms().setSkullOwner(skullMeta, Bukkit.getOfflinePlayer(item.getCustomHead()));
+			Util.setSkullOwner(skullMeta, Bukkit.getOfflinePlayer(item.getCustomHead()));
 		    }
 		}
 
@@ -362,10 +364,10 @@ public class ShopManager {
 		Map<String, Integer> requiredJobs = new HashMap<>();
 
 		for (String one : nameSection.getStringList("RequiredJobLevels")) {
-		    if (!one.contains("-"))
+		    String[] split = one.split("-", 2);
+		    if (split.length == 0)
 			continue;
 
-		    String[] split = one.split("-", 2);
 		    int lvl = 1;
 		    if (split.length > 1) {
 			try {
@@ -399,7 +401,7 @@ public class ShopManager {
 		    if (itemSection.isString("Id"))
 			id = itemSection.getString("Id");
 		    else {
-			Jobs.getPluginLogger().severe("Shop item " + category + " has an invalid GiveItems name property. Skipping!");
+			Jobs.getPluginLogger().severe("Shop item " + category + " has an invalid GiveItems item id property. Skipping!");
 			continue;
 		    }
 
@@ -413,10 +415,10 @@ public class ShopManager {
 
 		    Map<Enchantment, Integer> enchants = new HashMap<>();
 		    for (String eachLine : itemSection.getStringList("Enchants")) {
-			if (!eachLine.contains("="))
+			String[] split = eachLine.split("=", 2);
+			if (split.length == 0)
 			    continue;
 
-			String[] split = eachLine.split("=", 2);
 			Enchantment ench = CMIEnchantment.getEnchantment(split[0]);
 			if (ench == null)
 			    continue;

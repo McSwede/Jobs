@@ -6,6 +6,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
+import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
@@ -24,13 +25,15 @@ public final class JobsPayment14Listener implements Listener {
     // BlockCookEvent does not have "cooking owner"
     private final Map<UUID, List<PlayerCamp>> campPlayers = new HashMap<>();
 
-    @EventHandler(priority = EventPriority.LOW)
+    @EventHandler(priority = EventPriority.LOW, ignoreCancelled = true)
     public void onCook(BlockCookEvent event) {
-	if (event.isCancelled() || !(event.getBlock().getType() != Material.CAMPFIRE) || campPlayers.isEmpty())
+	if (!(event.getBlock().getType() != Material.CAMPFIRE) || campPlayers.isEmpty())
 	    return;
 
 	if (!Jobs.getGCManager().canPerformActionInWorld(event.getBlock().getWorld()))
 	    return;
+
+	Location blockLoc = event.getBlock().getLocation();
 
 	for (Map.Entry<UUID, List<PlayerCamp>> map : campPlayers.entrySet()) {
 	    List<PlayerCamp> camps = map.getValue();
@@ -41,14 +44,14 @@ public final class JobsPayment14Listener implements Listener {
 	    }
 
 	    for (PlayerCamp camp : new ArrayList<>(camps)) {
-		if (camp.getBlock().getLocation().equals(event.getBlock().getLocation())) {
+		if (camp.getBlock().getLocation().equals(blockLoc)) {
 		    if (camp.getItem().equals(event.getSource())) {
 			camps.remove(camp);
 
 			if (camps.isEmpty()) {
 			    campPlayers.remove(map.getKey());
 			} else {
-			    campPlayers.replace(map.getKey(), camps);
+			    campPlayers.put(map.getKey(), camps);
 			}
 		    }
 
@@ -59,31 +62,34 @@ public final class JobsPayment14Listener implements Listener {
 	}
     }
 
-    @EventHandler(ignoreCancelled = true)
+    @EventHandler
     public void onBlockBreak(BlockBreakEvent event) {
 	if (event.getBlock().getType() != Material.CAMPFIRE || campPlayers.isEmpty())
 	    return;
 
-	List<PlayerCamp> camps = campPlayers.get(event.getPlayer().getUniqueId());
+	UUID playerUId = event.getPlayer().getUniqueId();
+	List<PlayerCamp> camps = campPlayers.get(playerUId);
+	if (camps == null)
+	    return;
 
-	if (camps != null) {
-	    if (camps.isEmpty()) {
-		campPlayers.remove(event.getPlayer().getUniqueId());
-		return;
-	    }
+	if (camps.isEmpty()) {
+	    campPlayers.remove(playerUId);
+	    return;
+	}
 
-	    for (PlayerCamp camp : new ArrayList<>(camps)) {
-		if (camp.getBlock().getLocation().equals(event.getBlock().getLocation())) {
-		    camps.remove(camp);
+	Location blockLoc = event.getBlock().getLocation();
 
-		    if (camps.isEmpty()) {
-			campPlayers.remove(event.getPlayer().getUniqueId());
-		    } else {
-			campPlayers.replace(event.getPlayer().getUniqueId(), camps);
-		    }
+	for (PlayerCamp camp : new ArrayList<>(camps)) {
+	    if (camp.getBlock().getLocation().equals(blockLoc)) {
+		camps.remove(camp);
 
-		    break;
+		if (camps.isEmpty()) {
+		    campPlayers.remove(playerUId);
+		} else {
+		    campPlayers.put(playerUId, camps);
 		}
+
+		break;
 	    }
 	}
     }
@@ -95,7 +101,7 @@ public final class JobsPayment14Listener implements Listener {
 	if (click == null || click.getType() != Material.CAMPFIRE || !ev.hasItem())
 	    return;
 
-	if (!Jobs.getGCManager().canPerformActionInWorld(click.getWorld()) || !JobsPaymentListener.payIfCreative(ev.getPlayer()))
+	if (!JobsPaymentListener.payIfCreative(ev.getPlayer()) || !Jobs.getGCManager().canPerformActionInWorld(click.getWorld()))
 	    return;
 
 	List<PlayerCamp> camps = campPlayers.getOrDefault(ev.getPlayer().getUniqueId(), new ArrayList<>());

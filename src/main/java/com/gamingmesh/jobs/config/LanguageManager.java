@@ -7,8 +7,9 @@ import java.util.Iterator;
 import java.util.List;
 
 import com.gamingmesh.jobs.Jobs;
-import com.gamingmesh.jobs.CMILib.ConfigReader;
 import com.gamingmesh.jobs.stuff.Util;
+
+import net.Zrips.CMILib.FileHandler.ConfigReader;
 
 public class LanguageManager {
 
@@ -60,7 +61,13 @@ public class LanguageManager {
 		f = new File(Jobs.getFolder(), "locale" + File.separator + "messages_" + lang + ".yml");
 	    }
 
-	    ConfigReader c = new ConfigReader(f);
+	    ConfigReader c;
+	    try {
+		c = new ConfigReader(f);
+	    } catch (Exception e) {
+		e.printStackTrace();
+		continue;
+	    }
 	    c.copyDefaults(true);
 
 	    Jobs.getGCManager().getCommandArgs().clear();
@@ -407,8 +414,8 @@ public class LanguageManager {
 	    Jobs.getGCManager().getCommandArgs().put("playerinfo", Arrays.asList("[playername]", "[jobname]", "[action]"));
 
 	    c.get("command.join.help.info", "Join the selected job.");
-	    c.get("command.join.help.args", "[jobname]");
-	    Jobs.getGCManager().getCommandArgs().put("join", Arrays.asList("[jobname]"));
+	    c.get("command.join.help.args", "[jobfullname]");
+	    Jobs.getGCManager().getCommandArgs().put("join", Arrays.asList("[jobfullname]"));
 	    c.get("command.join.error.alreadyin", "You are already in the job %jobname%.");
 	    c.get("command.join.error.fullslots", "You cannot join the job %jobname%, there are no slots available.");
 	    c.get("command.join.error.maxjobs", "You have already joined too many jobs.");

@@ -12,13 +12,13 @@ import org.bukkit.event.block.BlockPistonExtendEvent;
 import org.bukkit.event.block.BlockPistonRetractEvent;
 
 import com.gamingmesh.jobs.Jobs;
+import com.gamingmesh.jobs.stuff.Util;
 
 public class PistonProtectionListener implements Listener {
 
     @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
     public void onBlockMove(BlockPistonExtendEvent event) {
-	if (!Jobs.getGCManager().useBlockProtection || event.isCancelled()
-	    || !Jobs.getGCManager().canPerformActionInWorld(event.getBlock().getWorld()))
+	if (!Jobs.getGCManager().useBlockProtection || !Jobs.getGCManager().canPerformActionInWorld(event.getBlock().getWorld()))
 	    return;
 
 	BlockFace dir = event.getDirection();
@@ -39,8 +39,7 @@ public class PistonProtectionListener implements Listener {
 
     @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
     public void onBlockRetractMove(BlockPistonRetractEvent event) {
-	if (!Jobs.getGCManager().useBlockProtection || event.isCancelled()
-	    || !Jobs.getGCManager().canPerformActionInWorld(event.getBlock().getWorld()))
+	if (!Jobs.getGCManager().useBlockProtection || !Jobs.getGCManager().canPerformActionInWorld(event.getBlock().getWorld()))
 	    return;
 
 	BlockFace dir = event.getDirection();
@@ -48,7 +47,7 @@ public class PistonProtectionListener implements Listener {
 	    y = dir.getModY(),
 	    z = dir.getModZ();
 
-	List<Block> blocks = Jobs.getNms().getPistonRetractBlocks(event);
+	List<Block> blocks = Util.getPistonRetractBlocks(event);
 	for (int i = blocks.size() - 1; i >= 0; i--) {
 	    Location oldLoc = blocks.get(i).getLocation();
 	    Location newLoc = oldLoc.clone().add(x, y, z);

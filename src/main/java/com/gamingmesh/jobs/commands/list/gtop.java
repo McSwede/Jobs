@@ -10,7 +10,9 @@ import org.bukkit.scoreboard.DisplaySlot;
 import com.gamingmesh.jobs.Jobs;
 import com.gamingmesh.jobs.commands.Cmd;
 import com.gamingmesh.jobs.container.TopList;
-import com.gamingmesh.jobs.stuff.PageInfo;
+
+import net.Zrips.CMILib.Container.PageInfo;
+import net.Zrips.CMILib.Scoreboards.CMIScoreboard;
 
 public class gtop implements Cmd {
 
@@ -31,7 +33,7 @@ public class gtop implements Cmd {
 	if (args.length == 1) {
 	    if (args[0].equalsIgnoreCase("clear")) {
 		player.getScoreboard().clearSlot(DisplaySlot.SIDEBAR);
-		plugin.getCMIScoreboardManager().removeScoreBoard(player);
+		CMIScoreboard.removeScoreBoard(player);
 		return true;
 	    }
 
@@ -83,8 +85,7 @@ public class gtop implements Cmd {
 		++i;
 	    }
 
-	    plugin.getCMIScoreboardManager().setScoreBoard(player, Jobs.getLanguage().getMessage("scoreboard.gtopline"), ls);
-	    plugin.getCMIScoreboardManager().addNew(player);
+	    CMIScoreboard.show(player, Jobs.getLanguage().getMessage("scoreboard.gtopline"), ls, Jobs.getGCManager().ToplistInScoreboardInterval);
 	}
 
 	plugin.showPagination(sender, pi, "jobs gtop");

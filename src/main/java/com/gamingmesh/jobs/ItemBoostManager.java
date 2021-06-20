@@ -13,23 +13,30 @@ import java.util.Set;
 import org.bukkit.Color;
 import org.bukkit.enchantments.Enchantment;
 
-import com.gamingmesh.jobs.CMILib.CMIChatColor;
 import com.gamingmesh.jobs.CMILib.CMIEnchantment;
-import com.gamingmesh.jobs.CMILib.CMIMaterial;
-import com.gamingmesh.jobs.CMILib.ConfigReader;
 import com.gamingmesh.jobs.container.BoostMultiplier;
 import com.gamingmesh.jobs.container.CurrencyType;
 import com.gamingmesh.jobs.container.Job;
 import com.gamingmesh.jobs.container.JobItems;
 
-public class ItemBoostManager {
+import net.Zrips.CMILib.Colors.CMIChatColor;
+import net.Zrips.CMILib.FileHandler.ConfigReader;
+import net.Zrips.CMILib.Items.CMIMaterial;
+
+public final class ItemBoostManager {
 
     private static final Map<String, JobItems> ITEMS = new HashMap<>();
     private static final Map<String, JobItems> LEGACY = new HashMap<>();
 
-	@SuppressWarnings("deprecation")
-	public static void load() {
-	ConfigReader cfg = new ConfigReader("boostedItems.yml");
+    @SuppressWarnings("deprecation")
+    public static void load() {
+	ConfigReader cfg;
+	try {
+	    cfg = new ConfigReader(Jobs.getInstance(), "boostedItems.yml");
+	} catch (Exception e2) {
+	    e2.printStackTrace();
+	    return;
+	}
 
 	ITEMS.clear();
 	LEGACY.clear();
@@ -69,7 +76,12 @@ public class ItemBoostManager {
 	    } catch (IOException e1) {
 		e1.printStackTrace();
 	    }
-	    cfg = new ConfigReader("boostedItems.yml");
+	    try {
+		cfg = new ConfigReader(Jobs.getInstance(), "boostedItems.yml");
+	    } catch (Exception e) {
+		e.printStackTrace();
+		return;
+	    }
 	}
 
 	Set<String> keys = cfg.getC().getKeys(false);
@@ -115,11 +127,14 @@ public class ItemBoostManager {
 		continue;
 
 	    List<Job> jobs = new ArrayList<>();
-	    for (String oneJ : cfg.get(one + ".jobs", Arrays.asList(""))) {
-		if (oneJ.equalsIgnoreCase("all")) {
-		    jobs.addAll(Jobs.getJobs());
-		} else {
+	    List<String> j = cfg.get(one + ".jobs", Arrays.asList(""));
+
+	    if (j.contains("all")) {
+		jobs.addAll(Jobs.getJobs());
+	    } else {
+		for (String oneJ : j) {
 		    Job job = Jobs.getJob(oneJ);
+
 		    if (job != null) {
 			jobs.add(job);
 		    } else {
@@ -133,27 +148,29 @@ public class ItemBoostManager {
 		continue;
 	    }
 
-	    List<String> lore = new ArrayList<>();
-	    if (cfg.getC().isList(one + ".lore")) {
-		for (String eachLine : cfg.get(one + ".lore", Arrays.asList(""))) {
-		    lore.add(CMIChatColor.translate(eachLine));
-		}
+	    List<String> lore = cfg.get(one + ".lore", Arrays.asList(""));
+	    for (int a = 0; a < lore.size(); a++) {
+		lore.set(a, CMIChatColor.translate(lore.get(a)));
 	    }
 
 	    Map<Enchantment, Integer> enchants = new HashMap<>();
 	    if (cfg.getC().isList(one + ".enchants"))
 		for (String eachLine : cfg.get(one + ".enchants", Arrays.asList(""))) {
-		    if (!eachLine.contains("="))
+		    String[] split = eachLine.split("=", 2);
+		    if (split.length == 0)
 			continue;
 
-		    String[] split = eachLine.split("=", 2);
 		    Enchantment ench = CMIEnchantment.getEnchantment(split[0]);
-		    Integer level = -1;
-		    try {
-			level = Integer.parseInt(split[1]);
-		    } catch (NumberFormatException e) {
-			continue;
+		    int level = -1;
+
+		    if (split.length > 1) {
+			try {
+			    level = Integer.parseInt(split[1]);
+			} catch (NumberFormatException e) {
+			    continue;
+			}
 		    }
+
 		    if (ench != null && level != -1)
 			enchants.put(ench, level);
 		}
@@ -161,7 +178,8 @@ public class ItemBoostManager {
 	    BoostMultiplier b = new BoostMultiplier();
 	    for (CurrencyType oneC : CurrencyType.values()) {
 		String typeName = oneC.toString().toLowerCase();
-		if (cfg.getC().isDouble(one + "." + typeName + "Boost") || cfg.getC().isInt(one + "." + typeName + "Boost"))
+
+		if (cfg.getC().isDouble(one + "." + typeName + "Boost"))
 		    b.add(oneC, cfg.get(one + "." + typeName + "Boost", 1D) - 1);
 	    }
 
@@ -171,8 +189,10 @@ public class ItemBoostManager {
 	    String node = one.toLowerCase();
 
 	    Color leatherColor = null;
-	    if (cfg.getC().isString(one + ".leather-color")) {
-		String[] split = cfg.getC().getString(one + ".leather-color").split(",", 3);
+	    String lc = cfg.getC().getString(one + ".leather-color", "");
+	    if (!lc.isEmpty()) {
+		String[] split = lc.split(",", 3);
+
 		if (split.length != 0) {
 		    int red = Integer.parseInt(split[0]);
 		    int green = split.length > 0 ? Integer.parseInt(split[1]) : 0;
@@ -198,8 +218,9 @@ public class ItemBoostManager {
 	    }
 
 	    // Lets add into legacy map
-	    if (one.contains("_")) {
-		item.setLegacyKey(one.split("_", 2)[1].toLowerCase());
+	    String[] split = one.split("_", 2);
+	    if (split.length > 1) {
+		item.setLegacyKey(split[1].toLowerCase());
 		LEGACY.put(item.getLegacyKey(), item);
 	    }
 
@@ -207,6 +228,7 @@ public class ItemBoostManager {
 	}
 
 	cfg.save();
+	Jobs.consoleMsg("&e[Jobs] Loaded " + ITEMS.size() + " boosted items!");
     }
 
     /**

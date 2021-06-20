@@ -5,6 +5,7 @@ version: ${project.version}
 api-version: "1.13"
 website: https://www.spigotmc.org/resources/4216/
 authors: [Zrips, montlikadani]
+depend: [CMILib]
 softdepend: [Vault, Essentials, MythicMobs, McMMO, mcMMO, WorldGuard, MyPet, PlaceholderAPI, EcoEnchants]
 commands:
   jobs:
@@ -43,8 +44,6 @@ permissions:
     children:
       jobs.command.archive: true
       jobs.command.browse: true
-      jobs.command.stats: true
-      jobs.command.archive: true
       jobs.command.join: true
       jobs.command.leave: true
       jobs.command.leaveall: true

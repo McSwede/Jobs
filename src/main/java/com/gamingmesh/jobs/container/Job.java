@@ -36,10 +36,11 @@ import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 
 import com.gamingmesh.jobs.Jobs;
-import com.gamingmesh.jobs.CMILib.CMIChatColor;
-import com.gamingmesh.jobs.CMILib.CMIMaterial;
 import com.gamingmesh.jobs.actions.PotionItemActionInfo;
 import com.gamingmesh.jobs.resources.jfep.Parser;
+
+import net.Zrips.CMILib.Colors.CMIChatColor;
+import net.Zrips.CMILib.Items.CMIMaterial;
 
 public class Job {
 
@@ -199,7 +200,8 @@ public class Job {
      * @return true if same
      */
     public boolean isSame(Job job) {
-	return job != null && (id == job.getId() || fullName.equalsIgnoreCase(job.getName()));
+	return job != null && (id == job.getId() || jobName.equalsIgnoreCase(job.getName())
+	    || fullName.equalsIgnoreCase(job.getJobFullName()) || fullName.equalsIgnoreCase(job.getName()));
     }
 
     /**

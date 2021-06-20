@@ -3,7 +3,8 @@ package com.gamingmesh.jobs.dao;
 import java.io.IOException;
 
 import com.gamingmesh.jobs.Jobs;
-import com.gamingmesh.jobs.CMILib.ConfigReader;
+
+import net.Zrips.CMILib.FileHandler.ConfigReader;
 
 public class JobsManager {
     private JobsDAO dao;
@@ -32,6 +33,7 @@ public class JobsManager {
 	    // If it MySQL lets change to SqLite
 	    dbType = DataBaseType.SqLite;
 	    dao = startSqlite();
+
 	    if (dao != null)
 		dao.setDbType(dbType);
 	    break;
@@ -39,6 +41,7 @@ public class JobsManager {
 	    // If it SqLite lets change to MySQL
 	    dbType = DataBaseType.MySQL;
 	    dao = startMysql();
+
 	    if (dao != null)
 		dao.setDbType(dbType);
 	    break;
@@ -64,6 +67,7 @@ public class JobsManager {
 
     public void start() {
 	ConfigReader c = Jobs.getGCManager().getConfig();
+
 	c.addComment("storage.method", "storage method, can be MySQL or sqlite");
 	String storageMethod = c.get("storage.method", "sqlite");
 	c.addComment("mysql", "Requires Mysql");
@@ -82,26 +86,31 @@ public class JobsManager {
 	if (storageMethod.equalsIgnoreCase("mysql")) {
 	    dbType = DataBaseType.MySQL;
 	    dao = startMysql();
-	} else if (storageMethod.equalsIgnoreCase("sqlite")) {
-	    dbType = DataBaseType.SqLite;
-	    dao = startSqlite();
 	} else {
-	    Jobs.consoleMsg("&cInvalid storage method! Changing method to sqlite!");
-	    c.set("storage.method", "sqlite");
+	    if (!storageMethod.equalsIgnoreCase("sqlite")) {
+		Jobs.consoleMsg("&cInvalid storage method! Changing method to sqlite!");
+		c.set("storage.method", "sqlite");
+	    }
+
 	    dbType = DataBaseType.SqLite;
 	    dao = startSqlite();
 	}
+
 	Jobs.setDAO(dao);
     }
 
     private synchronized JobsMySQL startMysql() {
 	ConfigReader c = Jobs.getGCManager().getConfig();
 	String legacyUrl = c.getC().getString("mysql.url");
+
 	if (legacyUrl != null) {
 	    String jdbcString = "jdbc:mysql://";
+
 	    if (legacyUrl.toLowerCase().startsWith(jdbcString)) {
 		legacyUrl = legacyUrl.substring(jdbcString.length());
-		String[] parts = legacyUrl.split("/");
+
+		String[] parts = legacyUrl.split("/", 2);
+
 		if (parts.length >= 2) {
 		    hostname = c.get("mysql.hostname", parts[0]);
 		    database = c.get("mysql.database", parts[1]);

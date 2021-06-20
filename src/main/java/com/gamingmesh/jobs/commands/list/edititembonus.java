@@ -7,8 +7,6 @@ import org.bukkit.inventory.ItemStack;
 
 import com.gamingmesh.jobs.ItemBoostManager;
 import com.gamingmesh.jobs.Jobs;
-import com.gamingmesh.jobs.CMILib.CMIChatColor;
-import com.gamingmesh.jobs.CMILib.CMIReflections;
 import com.gamingmesh.jobs.commands.Cmd;
 import com.gamingmesh.jobs.container.BoostMultiplier;
 import com.gamingmesh.jobs.container.CurrencyType;
@@ -16,10 +14,15 @@ import com.gamingmesh.jobs.container.Job;
 import com.gamingmesh.jobs.container.JobItems;
 import com.gamingmesh.jobs.container.JobsPlayer;
 
+import net.Zrips.CMILib.Colors.CMIChatColor;
+import net.Zrips.CMILib.Items.CMIItemStack;
+import net.Zrips.CMILib.NBT.CMINBT;
+
 public class edititembonus implements Cmd {
 
     private enum actions {
 	list, add, remove;
+
 	public static actions getByname(String name) {
 	    for (actions one : actions.values()) {
 		if (one.name().equalsIgnoreCase(name))
@@ -68,7 +71,7 @@ public class edititembonus implements Cmd {
 	if (jPlayer == null)
 	    return false;
 
-	ItemStack iih = Jobs.getNms().getItemInMainHand(player);
+	ItemStack iih = CMIItemStack.getItemInMainHand(player);
 	if (iih == null || iih.getType() == Material.AIR)
 	    return false;
 
@@ -76,14 +79,14 @@ public class edititembonus implements Cmd {
 	case add:
 	    if (jobitem == null)
 		return false;
-	    iih = CMIReflections.setNbt(iih, "JobsItemBoost", jobitem.getNode());
-	    Jobs.getNms().setItemInMainHand(player, iih);
+	    iih = (ItemStack) new CMINBT(iih).setString("JobsItemBoost", jobitem.getNode());
+	    CMIItemStack.setItemInMainHand(player, iih);
 	    break;
 	case list:
 	    break;
 	case remove:
-	    iih = Jobs.getReflections().removeNbt(iih, "JobsItemBoost");
-	    Jobs.getNms().setItemInMainHand(player, iih);
+	    iih = (ItemStack) new CMINBT(iih).remove("JobsItemBoost");
+	    CMIItemStack.setItemInMainHand(player, iih);
 	    break;
 	default:
 	    break;
@@ -91,7 +94,7 @@ public class edititembonus implements Cmd {
 
 	sender.sendMessage(Jobs.getLanguage().getMessage("command.bonus.output.topline"));
 
-	Object key = CMIReflections.getNbt(iih, "JobsItemBoost");
+	Object key = new CMINBT(iih).getString("JobsItemBoost");
 	if (key == null)
 	    return true;
 

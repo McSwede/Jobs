@@ -5,11 +5,12 @@ import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 
 import com.gamingmesh.jobs.Jobs;
-import com.gamingmesh.jobs.CMILib.RawMessage;
 import com.gamingmesh.jobs.Placeholders.Placeholder.JobsPlaceHolders;
 import com.gamingmesh.jobs.Placeholders.Placeholder.JobsPlaceholderType;
 import com.gamingmesh.jobs.commands.Cmd;
-import com.gamingmesh.jobs.stuff.PageInfo;
+
+import net.Zrips.CMILib.Container.PageInfo;
+import net.Zrips.CMILib.RawMessages.RawMessage;
 
 public class placeholders implements Cmd {
 
@@ -52,8 +53,6 @@ public class placeholders implements Cmd {
 	PageInfo pi = new PageInfo(isPlayer ? Jobs.getGCManager().PlaceholdersPage : values.length, values.length, page);
 
 	for (JobsPlaceHolders one : values) {
-	    if (one.isHidden())
-		continue;
 	    if (pi.isBreak())
 		break;
 

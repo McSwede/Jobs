@@ -4,10 +4,12 @@ import java.util.HashMap;
 import java.util.Map;
 
 import com.gamingmesh.jobs.Jobs;
-import com.gamingmesh.jobs.CMILib.CMIItemStack;
-import com.gamingmesh.jobs.CMILib.CMIMaterial;
-import com.gamingmesh.jobs.CMILib.ConfigReader;
-import com.gamingmesh.jobs.CMILib.ItemManager;
+
+import net.Zrips.CMILib.CMILib;
+import net.Zrips.CMILib.FileHandler.ConfigReader;
+import net.Zrips.CMILib.Items.CMIItemStack;
+import net.Zrips.CMILib.Items.CMIMaterial;
+import net.Zrips.CMILib.Items.ItemManager;
 
 public class RestrictedBlockManager {
 
@@ -21,7 +23,15 @@ public class RestrictedBlockManager {
 	if (!Jobs.getGCManager().useBlockProtection)
 	    return;
 
-	ConfigReader cfg = new ConfigReader("restrictedBlocks.yml");
+	ConfigReader cfg = null;
+	try {
+	    cfg = new ConfigReader(Jobs.getInstance(), "restrictedBlocks.yml");
+	} catch (Exception e) {
+	    e.printStackTrace();
+	}
+
+	if (cfg == null)
+	    return;
 
 	cfg.addComment("blocksTimer", "Block protected by timer in sec",
 	    "Category name can be any you like to be easily recognized",
@@ -33,16 +43,17 @@ public class RestrictedBlockManager {
 	if (section != null) {
 	    for (String one : section.getKeys(false)) {
 		if ((section.isString(one + ".id") || section.isInt(one + ".id")) && section.isInt(one + ".cd")) {
-		    CMIItemStack cm = ItemManager.getItem(CMIMaterial.get(section.getString(one + ".id")));
+		    CMIItemStack cm = CMIMaterial.get(section.getString(one + ".id")).newCMIItemStack();
+		    CMIMaterial mat = cm == null ? null : cm.getCMIType();
 
-		    if (cm == null || !cm.getCMIType().isBlock()) {
+		    if (mat == null || !mat.isBlock()) {
 			Jobs.consoleMsg("&e[Jobs] Your defined (" + one + ") protected block id/name is not correct!");
 			continue;
 		    }
 
 		    int cd = section.getInt(one + ".cd");
-		    restrictedBlocksTimer.put(cm.getCMIType(), cd);
-		    cfg.set("blocksTimer." + cm.getCMIType().name(), cd);
+		    restrictedBlocksTimer.put(mat, cd);
+		    cfg.set("blocksTimer." + mat.name(), cd);
 		} else {
 		    CMIMaterial mat = CMIMaterial.get(one);
 		    if (mat == CMIMaterial.NONE)
@@ -67,8 +78,9 @@ public class RestrictedBlockManager {
 	    }
 	}
 
-	if (restrictedBlocksTimer.size() > 0)
-	    Jobs.consoleMsg("&e[Jobs] Loaded " + restrictedBlocksTimer.size() + " protected blocks timers!");
+	int size = restrictedBlocksTimer.size();
+	if (size > 0)
+	    Jobs.consoleMsg("&e[Jobs] Loaded " + size + " protected blocks timers!");
 
 	cfg.save();
     }

@@ -72,18 +72,23 @@ public class PermissionManager {
 
 	private static List<String> remade(String perm) {
 	    List<String> perms = new ArrayList<>();
+
 	    for (Job oneJ : Jobs.getJobs()) {
 		String t = perm;
+
 		if (t.contains("%JOBNAME%"))
 		    t = t.replace("%JOBNAME%", oneJ.getName().toLowerCase());
-		if (t.contains("%AMOUNT%"))
-		    t = t.replace("%AMOUNT%", "");
+
+		t = t.replace("%AMOUNT%", "");
+
 		perms.add(t);
 	    }
+
 	    if (perm.contains("%WORLDNAME%"))
 		for (World oneJ : Bukkit.getWorlds()) {
 		    perms.add(perm.replace("%WORLDNAME%", oneJ.getName().toLowerCase()));
 		}
+
 	    return perms;
 	}
 
@@ -151,7 +156,11 @@ public class PermissionManager {
      * @return the max value
      */
     public double getMaxPermission(JobsPlayer jPlayer, String perm, boolean force, boolean cumulative) {
-	if (jPlayer == null || jPlayer.getPlayer() == null)
+	if (jPlayer == null)
+	    return 0D;
+
+	Player player = jPlayer.getPlayer();
+	if (player == null)
 	    return 0D;
 
 	perm = perm.toLowerCase();
@@ -160,7 +169,7 @@ public class PermissionManager {
 
 	Map<String, Boolean> permissions = jPlayer.getPermissionsCache();
 	if (force || permissions == null || getDelay(perm) + jPlayer.getLastPermissionUpdate() < System.currentTimeMillis()) {
-	    permissions = getAll(jPlayer.getPlayer());
+	    permissions = getAll(player);
 	    jPlayer.setPermissionsCache(permissions);
 	    jPlayer.setLastPermissionUpdate(System.currentTimeMillis());
 	}
@@ -185,12 +194,16 @@ public class PermissionManager {
     }
 
     public boolean hasPermission(JobsPlayer jPlayer, String perm) {
-	if (jPlayer == null || jPlayer.getPlayer() == null)
+	if (jPlayer == null)
+	    return false;
+
+	Player player = jPlayer.getPlayer();
+	if (player == null)
 	    return false;
 
 	Map<String, Boolean> permissions = jPlayer.getPermissionsCache();
 	if (permissions == null || getDelay(perm) + jPlayer.getLastPermissionUpdate() < System.currentTimeMillis()) {
-	    permissions = getAll(jPlayer.getPlayer());
+	    permissions = getAll(player);
 	    jPlayer.setPermissionsCache(permissions);
 	    jPlayer.setLastPermissionUpdate(System.currentTimeMillis());
 	}

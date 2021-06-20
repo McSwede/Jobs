@@ -37,12 +37,7 @@ import org.bukkit.inventory.meta.EnchantmentStorageMeta;
 
 import com.gamingmesh.jobs.ItemBoostManager;
 import com.gamingmesh.jobs.Jobs;
-import com.gamingmesh.jobs.CMILib.CMIChatColor;
 import com.gamingmesh.jobs.CMILib.CMIEnchantment;
-import com.gamingmesh.jobs.CMILib.CMIEntityType;
-import com.gamingmesh.jobs.CMILib.CMIMaterial;
-import com.gamingmesh.jobs.CMILib.ConfigReader;
-import com.gamingmesh.jobs.CMILib.Version;
 import com.gamingmesh.jobs.container.ActionType;
 import com.gamingmesh.jobs.container.BoostMultiplier;
 import com.gamingmesh.jobs.container.CurrencyType;
@@ -60,7 +55,15 @@ import com.gamingmesh.jobs.resources.jfep.ParseError;
 import com.gamingmesh.jobs.resources.jfep.Parser;
 import com.gamingmesh.jobs.stuff.Util;
 
+import net.Zrips.CMILib.Colors.CMIChatColor;
+import net.Zrips.CMILib.Entities.CMIEntityType;
+import net.Zrips.CMILib.FileHandler.ConfigReader;
+import net.Zrips.CMILib.Items.CMIMaterial;
+import net.Zrips.CMILib.Version.Version;
+
 public class ConfigManager {
+
+    private final Jobs plugin = org.bukkit.plugin.java.JavaPlugin.getPlugin(Jobs.class);
 
     @Deprecated
     private File jobFile;
@@ -79,7 +82,16 @@ public class ConfigManager {
     }
 
     private void updateExampleFile() {
-	ConfigReader cfg = new ConfigReader(new File(Jobs.getFolder(), "jobs" + File.separator + EXAMPLEJOBNAME.toUpperCase() + ".yml"));
+	ConfigReader cfg = null;
+	try {
+	    cfg = new ConfigReader(new File(Jobs.getFolder(), "jobs" + File.separator + EXAMPLEJOBNAME.toUpperCase() + ".yml"));
+	} catch (Exception e) {
+	    e.printStackTrace();
+	}
+
+	if (cfg == null)
+	    return;
+
 	if (!cfg.getFile().isFile())
 	    return;
 	cfg.load();
@@ -476,7 +488,7 @@ public class ConfigManager {
 	cfg.save();
     }
 
-    private static void generate(ConfigReader cfg, String pt) {
+    private void generate(ConfigReader cfg, String pt) {
 	cfg.get(pt + ".income", 1D);
 	cfg.get(pt + ".points", 1D);
 	cfg.get(pt + ".experience", 1D);
@@ -554,26 +566,27 @@ public class ConfigManager {
 
     @SuppressWarnings("deprecation")
     public KeyValues getKeyValue(String myKey, ActionType actionType, String jobName) {
-	String type = null,
-	    subType = "",
-	    meta = "";
-	final String finalMyKey = myKey;
-	int id = 0;
+	String subType = "", meta = "";
 
-	if (myKey.contains("-")) {
-	    // uses subType
-	    String[] split = myKey.split("-", 2);
-	    if (split.length >= 2) {
-		subType = ":" + split[1];
-		meta = split[1];
-		myKey = split[0];
+	final String finalMyKey = myKey;
+
+	String[] keySplit = myKey.split("-", 2);
+
+	if (keySplit.length > 0) {
+	    if (keySplit.length > 1) {
+		subType = ":" + keySplit[1];
+		meta = keySplit[1];
 	    }
-	} else if (myKey.contains(":")) { // when we uses tipped arrow effect types
-	    String[] split = myKey.split(":", 2);
-	    meta = split.length > 1 ? split[1] : myKey;
+
+	    myKey = keySplit[0];
+	} else if ((keySplit = myKey.split(":", 2)).length > 0) { // when we uses tipped arrow effect types
+	    meta = keySplit.length > 1 ? keySplit[1] : myKey;
 	    subType = ":all";
-	    myKey = split[0];
+	    myKey = keySplit[0];
 	}
+
+	String type = null;
+	int id = 0;
 
 	CMIMaterial material = CMIMaterial.NONE;
 
@@ -614,12 +627,10 @@ public class ConfigManager {
 		    matId = Integer.valueOf(myKey);
 		} catch (NumberFormatException ignored) {
 		}
-		if (matId != null) {
-		    material = CMIMaterial.get(matId);
-		    if (material != CMIMaterial.NONE) {
-			Jobs.getPluginLogger().warning("Job " + jobName + " " + actionType.getName() + " is using ID: " + myKey + "!");
-			Jobs.getPluginLogger().warning("Please use the Material name instead: " + material.toString() + "!");
-		    }
+
+		if (matId != null && (material = CMIMaterial.get(matId)) != CMIMaterial.NONE) {
+		    Jobs.getPluginLogger().warning("Job " + jobName + " " + actionType.getName() + " is using ID: " + myKey + "!");
+		    Jobs.getPluginLogger().warning("Please use the Material name instead: " + material.toString() + "!");
 		}
 	    }
 
@@ -661,7 +672,7 @@ public class ConfigManager {
 		break;
 	    }
 
-	    // Break and Place actions MUST be blocks
+	    // These actions MUST be blocks
 	    if (actionType == ActionType.BREAK || actionType == ActionType.PLACE || actionType == ActionType.STRIPLOGS) {
 		if (!material.isBlock() || material.getMaterial().toString().equalsIgnoreCase("AIR")) {
 		    Jobs.getPluginLogger().warning("Job " + jobName + " has an invalid " + actionType.getName() + " type property: " + material
@@ -695,8 +706,14 @@ public class ConfigManager {
 	    // END HACK
 
 	    type = material.getMaterial().toString();
-	    if (Version.isCurrentEqualOrLower(Version.v1_12_R1) && material.getLegacyData() > 0)
-		subType = ":" + material.getLegacyData();
+
+	    if (Version.isCurrentEqualOrLower(Version.v1_12_R1)) {
+		short legacyData = material.getLegacyData();
+
+		if (legacyData > 0)
+		    subType = ":" + legacyData;
+	    }
+
 	    id = material.getId();
 	} else if (actionType == ActionType.KILL || actionType == ActionType.TAME || actionType == ActionType.BREED || actionType == ActionType.MILK) {
 	    // check entities
@@ -787,8 +804,9 @@ public class ConfigManager {
 		type = myKey.substring(1, myKey.length());
 	    }
 
-	    if (myKey.contains(":")) {
-		subType = myKey.split(":", 2)[1];
+	    String[] split = myKey.split(":", 2);
+	    if (split.length > 1) {
+		subType = split[1];
 	    }
 	} else if (actionType == ActionType.SHEAR && !myKey.startsWith("color")) {
 	    type = myKey;
@@ -831,7 +849,6 @@ public class ConfigManager {
 
 	    if (jobsPathFolder.isDirectory() && jobsPathFolder.listFiles().length == 0) {
 		try {
-		    Jobs plugin = org.bukkit.plugin.java.JavaPlugin.getPlugin(Jobs.class);
 		    for (String f : Util.getFilesFromPackage("jobs", "", "yml")) {
 			plugin.saveResource("jobs" + File.separator + f + ".yml", false);
 		    }
@@ -882,7 +899,14 @@ public class ConfigManager {
 	    Jobs.getPluginLogger().info("Done. Migrated jobs amount: " + jobFiles.size());
 	}
 
-	ConfigReader cfg = new ConfigReader("jobConfig.yml");
+	ConfigReader cfg = null;
+	try {
+	    cfg = new ConfigReader(plugin, "jobConfig.yml");
+	} catch (Exception e) {
+	    e.printStackTrace();
+	    return false;
+	}
+
 	cfg.saveToBackup(false);
 	cfg.header(Arrays.asList("-----------------------------------------------------",
 	    "Jobs have been moved into jobs subfolder",
@@ -981,16 +1005,13 @@ public class ConfigManager {
 
 	    String description = CMIChatColor.translate(jobSection.getString("description", ""));
 
-	    List<String> fDescription = new ArrayList<>();
-	    if (jobSection.contains("FullDescription")) {
-		if (jobSection.isString("FullDescription"))
-		    fDescription.add(jobSection.getString("FullDescription"));
-		else if (jobSection.isList("FullDescription"))
-		    fDescription.addAll(jobSection.getStringList("FullDescription"));
+	    List<String> fDescription = jobSection.getStringList("FullDescription");
 
-		for (int i = 0; i < fDescription.size(); i++) {
-		    fDescription.set(i, CMIChatColor.translate(fDescription.get(i)));
-		}
+	    if (jobSection.isString("FullDescription"))
+		fDescription.add(jobSection.getString("FullDescription"));
+
+	    for (int i = 0; i < fDescription.size(); i++) {
+		fDescription.set(i, CMIChatColor.translate(fDescription.get(i)));
 	    }
 
 	    CMIChatColor color = CMIChatColor.WHITE;
@@ -1090,12 +1111,12 @@ public class ConfigManager {
 		    String item = guiSection.getString("Item");
 		    String subType = "";
 
-		    if (item.contains("-")) {
-			String[] split = item.split("-", 2);
-			subType = ":" + split[1];
-			item = split[0];
-		    } else if (item.contains(":")) { // when we uses tipped arrow effect types
-			item = item.split(":", 2)[0];
+		    String[] itemSplit = item.split("-", 2);
+		    if (itemSplit.length > 1) {
+			subType = ":" + itemSplit[1];
+			item = itemSplit[0];
+		    } else if ((itemSplit = item.split(":", 2)).length > 0) { // when we uses tipped arrow effect types
+			item = itemSplit[0];
 		    }
 
 		    CMIMaterial material = CMIMaterial.get(item + (subType));
@@ -1110,16 +1131,14 @@ public class ConfigManager {
 			    matId = Integer.valueOf(item);
 			} catch (NumberFormatException e) {
 			}
-			if (matId != null) {
-			    material = CMIMaterial.get(matId);
-			    if (material != null) {
-				log.warning("Job " + jobFullName + " is using GUI item ID: " + item + "!");
-				log.warning("Please use the Material name instead: " + material.toString() + "!");
-			    }
+
+			if (matId != null && (material = CMIMaterial.get(matId)) != CMIMaterial.NONE) {
+			    log.warning("Job " + jobFullName + " is using GUI item ID: " + item + "!");
+			    log.warning("Please use the Material name instead: " + material.toString() + "!");
 			}
 		    }
 
-		    if (material != null)
+		    if (material != CMIMaterial.NONE)
 			guiItem = material.newItemStack();
 		} else if (guiSection.isInt("Id") && guiSection.isInt("Data")) {
 		    guiItem = CMIMaterial.get(guiSection.getInt("Id"), guiSection.getInt("Data")).newItemStack();
@@ -1184,18 +1203,20 @@ public class ConfigManager {
 	    if (conditionsSection != null) {
 		for (String conditionKey : conditionsSection.getKeys(false)) {
 		    ConfigurationSection permissionSection = conditionsSection.getConfigurationSection(conditionKey);
+
 		    if (permissionSection == null) {
 			log.warning("Job " + jobKey + " has an invalid condition key " + conditionKey + "!");
 			continue;
 		    }
 
-		    if (!permissionSection.contains("requires") || !permissionSection.contains("perform")) {
+		    List<String> requires = permissionSection.getStringList("requires");
+		    List<String> perform = permissionSection.getStringList("perform");
+
+		    if (requires.isEmpty() || perform.isEmpty()) {
 			log.warning("Job " + jobKey + " has an invalid condition requirement " + conditionKey + "!");
 			continue;
 		    }
 
-		    List<String> requires = permissionSection.getStringList("requires"),
-			perform = permissionSection.getStringList("perform");
 		    jobConditions.add(new JobConditions(conditionKey.toLowerCase(), requires, perform));
 		}
 	    }
@@ -1212,11 +1233,10 @@ public class ConfigManager {
 			continue;
 		    }
 
-		    List<String> commands = new ArrayList<>();
+		    List<String> commands = commandSection.getStringList("command");
+
 		    if (commandSection.isString("command"))
 			commands.add(commandSection.getString("command"));
-		    else if (commandSection.isList("command"))
-			commands.addAll(commandSection.getStringList("command"));
 
 		    int levelFrom = commandSection.getInt("levelFrom", 0);
 		    int levelUntil = commandSection.getInt("levelUntil", maxLevel);
@@ -1293,7 +1313,7 @@ public class ConfigManager {
 			continue;
 		    }
 
-		    CMIMaterial mat = null;
+		    CMIMaterial mat = CMIMaterial.NONE;
 
 		    if (itemSection.isInt("id")) {
 			mat = CMIMaterial.get(itemSection.getInt("id"));
@@ -1301,7 +1321,7 @@ public class ConfigManager {
 			mat = CMIMaterial.get(itemSection.getString("id"));
 		    }
 
-		    if (mat == null) {
+		    if (mat == CMIMaterial.NONE) {
 			log.warning("Job " + jobKey + " has incorrect limitedItems material id!");
 			continue;
 		    }
@@ -1314,18 +1334,21 @@ public class ConfigManager {
 
 		    Map<Enchantment, Integer> enchants = new HashMap<>();
 		    for (String eachLine : itemSection.getStringList("enchants")) {
-			if (!eachLine.contains("="))
+			String[] split = eachLine.split("=", 2);
+			if (split.length == 0)
 			    continue;
 
-			String[] split = eachLine.split("=", 2);
 			Enchantment ench = CMIEnchantment.getEnchantment(split[0]);
 			if (ench == null)
 			    continue;
 
 			int level = -1;
-			try {
-			    level = Integer.parseInt(split[1]);
-			} catch (NumberFormatException e) {
+
+			if (split.length > 1) {
+			    try {
+				level = Integer.parseInt(split[1]);
+			    } catch (NumberFormatException e) {
+			    }
 			}
 
 			if (level != -1)
@@ -1365,72 +1388,60 @@ public class ConfigManager {
 			    continue;
 
 			Quest quest = new Quest(sqsection.getString("Name", one), job);
+			ActionType actionType = ActionType.getByName(sqsection.getString("Action"));
 
-			if (sqsection.isString("Target")) {
-			    ActionType actionType = ActionType.getByName(sqsection.getString("Action"));
-
-			    if (actionType == null)
-				continue;
-
+			if (actionType != null) {
 			    KeyValues kv = getKeyValue(sqsection.getString("Target").toUpperCase(), actionType, jobFullName);
+
 			    if (kv != null) {
 				int amount = sqsection.getInt("Amount", 1);
 				quest.addObjective(new QuestObjective(actionType, kv.getId(), kv.getMeta(), (kv.getType() + kv.getSubType()).toUpperCase(), amount));
 			    }
 			}
 
-			if (sqsection.isList("Objectives")) {
-			    for (String oneObjective : sqsection.getStringList("Objectives")) {
-				String[] split = oneObjective.split(";", 3);
+			for (String oneObjective : sqsection.getStringList("Objectives")) {
+			    String[] split = oneObjective.split(";", 3);
 
-				if (split.length < 2) {
-				    log.warning("Job " + jobKey + " has incorrect quest objective (" + oneObjective + ")!");
+			    if (split.length < 2) {
+				log.warning("Job " + jobKey + " has incorrect quest objective (" + oneObjective + ")!");
+				continue;
+			    }
+
+			    try {
+				if ((actionType = ActionType.getByName(split[0])) == null)
 				    continue;
-				}
 
-				try {
-				    ActionType actionType = ActionType.getByName(split[0]);
-				    if (actionType == null)
-					continue;
+				String mats = split[1].toUpperCase();
+				String[] co = mats.split(",");
 
-				    String mats = split[1].toUpperCase();
-				    String[] co = mats.split(",");
+				int amount = 1;
+				if (split.length <= 3)
+				    amount = Integer.parseInt(split[2]);
 
-				    int amount = 1;
-				    if (split.length <= 3) {
-					amount = Integer.parseInt(split[2]);
+				if (co.length > 0) {
+				    for (String materials : co) {
+					KeyValues kv = getKeyValue(materials, actionType, jobFullName);
+
+					if (kv == null)
+					    continue;
+
+					QuestObjective objective = new QuestObjective(actionType, kv.getId(), kv.getMeta(),
+					    (kv.getType() + kv.getSubType()).toUpperCase(), amount);
+					quest.addObjective(objective);
 				    }
+				} else {
+				    KeyValues kv = getKeyValue(mats, actionType, jobFullName);
 
-				    if (co.length > 0) {
-					for (String materials : co) {
-					    KeyValues kv = getKeyValue(materials, actionType, jobFullName);
-					    if (kv == null) {
-						continue;
-					    }
-
-					    QuestObjective objective = new QuestObjective(actionType, kv.getId(), kv.getMeta(),
-						(kv.getType() + kv.getSubType()).toUpperCase(), amount);
-					    quest.addObjective(objective);
-					}
-				    } else {
-					KeyValues kv = getKeyValue(mats, actionType, jobFullName);
-					if (kv != null) {
-					    QuestObjective objective = new QuestObjective(actionType, kv.getId(), kv.getMeta(),
-						(kv.getType() + kv.getSubType()).toUpperCase(), amount);
-					    quest.addObjective(objective);
-					}
+				    if (kv != null) {
+					QuestObjective objective = new QuestObjective(actionType, kv.getId(), kv.getMeta(),
+					    (kv.getType() + kv.getSubType()).toUpperCase(), amount);
+					quest.addObjective(objective);
 				    }
-				} catch (Exception e) {
-				    log.warning("Job " + jobKey + " has incorrect quest objective (" + oneObjective + ")!");
 				}
+			    } catch (Exception e) {
+				log.warning("Job " + jobKey + " has incorrect quest objective (" + oneObjective + ")!");
 			    }
 			}
-
-			int chance = sqsection.getInt("Chance", 100);
-
-			List<String> commands = sqsection.getStringList("RewardCommands"),
-			    desc = sqsection.getStringList("RewardDesc"),
-			    areas = sqsection.getStringList("RestrictedAreas");
 
 			quest.setMinLvl(sqsection.getInt("fromLevel"));
 
@@ -1438,10 +1449,11 @@ public class ConfigManager {
 			    quest.setMaxLvl(sqsection.getInt("toLevel"));
 
 			quest.setConfigName(one);
-			quest.setChance(chance);
-			quest.setRewardCmds(commands);
-			quest.setDescription(desc);
-			quest.setRestrictedArea(areas);
+			quest.setChance(sqsection.getInt("Chance", 100));
+			quest.setRewardCmds(sqsection.getStringList("RewardCommands"));
+			quest.setDescription(sqsection.getStringList("RewardDesc"));
+			quest.setRestrictedArea(sqsection.getStringList("RestrictedAreas"));
+
 			quests.add(quest);
 		    } catch (Exception e) {
 			Jobs.consoleMsg("&c[Jobs] Can't load " + one + " quest for " + jobFullName);
@@ -1449,8 +1461,8 @@ public class ConfigManager {
 		    }
 		}
 
-		Jobs.consoleMsg("&e[Jobs] Loaded " + quests.size() + " quests for " + jobFullName);
 		job.setQuests(quests);
+		Jobs.consoleMsg("&e[Jobs] Loaded " + quests.size() + " quests for " + jobFullName);
 	    }
 	    job.setMaxDailyQuests(jobSection.getInt("maxDailyQuests", 1));
 
@@ -1491,20 +1503,29 @@ public class ConfigManager {
 
 			    double income = 0D;
 			    if (sep.length >= 2) {
-				income = Double.parseDouble(sep[1]);
-				income = updateValue(CurrencyType.MONEY, income);
+				try {
+				    income = Double.parseDouble(sep[1]);
+				    income = updateValue(CurrencyType.MONEY, income);
+				} catch (NumberFormatException e) {
+				}
 			    }
 
 			    double points = 0D;
 			    if (sep.length >= 3) {
-				points = Double.parseDouble(sep[2]);
-				points = updateValue(CurrencyType.POINTS, points);
+				try {
+				    points = Double.parseDouble(sep[2]);
+				    points = updateValue(CurrencyType.POINTS, points);
+				} catch (NumberFormatException e) {
+				}
 			    }
 
 			    double experience = 0D;
 			    if (sep.length >= 4) {
-				experience = Double.parseDouble(sep[3]);
-				experience = updateValue(CurrencyType.EXP, experience);
+				try {
+				    experience = Double.parseDouble(sep[3]);
+				    experience = updateValue(CurrencyType.EXP, experience);
+				} catch (NumberFormatException e) {
+				}
 			    }
 
 			    jobInfo.add(new JobInfo(actionType, id, meta, type + subType, income, incomeEquation, experience, expEquation, pointsEquation, points, 1,
