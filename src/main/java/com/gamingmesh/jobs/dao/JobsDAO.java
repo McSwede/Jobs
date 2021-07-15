@@ -465,11 +465,15 @@ public abstract class JobsDAO {
 	try {
 	    Class.forName(driverName);
 	} catch (ClassNotFoundException c) {
-	    plugin.getLogger().log(java.util.logging.Level.WARNING, c.getLocalizedMessage());
+	    c.printStackTrace();
 	    return;
 	}
 
-	pool = new JobsConnectionPool(url, username, password);
+	try {
+	    pool = new JobsConnectionPool(driverName, url, username, password);
+	} catch (Exception e) {
+	    e.printStackTrace();
+	}
     }
 
     public final synchronized void setUp() {
@@ -1557,6 +1561,7 @@ public abstract class JobsDAO {
 	if (conn == null)
 	    return false;
 	PreparedStatement prest = null;
+	boolean done = true;
 	try {
 	    prest = conn.prepareStatement("DELETE FROM `" + getJobsTableName() + "` WHERE `" + JobsTableFields.userid.getCollumn() + "` = ? AND `" + JobsTableFields.jobid.getCollumn()
 		+ "` = ?;");
@@ -1565,11 +1570,11 @@ public abstract class JobsDAO {
 	    prest.execute();
 	} catch (SQLException e) {
 	    e.printStackTrace();
-	    return false;
+	    done = false;
 	} finally {
 	    close(prest);
 	}
-	return true;
+	return done;
     }
 
     /**
