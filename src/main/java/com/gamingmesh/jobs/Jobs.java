@@ -24,6 +24,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Iterator;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -113,6 +114,7 @@ import net.Zrips.CMILib.ActionBar.CMIActionBar;
 import net.Zrips.CMILib.Colors.CMIChatColor;
 import net.Zrips.CMILib.Container.PageInfo;
 import net.Zrips.CMILib.Items.CMIMaterial;
+import net.Zrips.CMILib.Logs.CMIDebug;
 import net.Zrips.CMILib.RawMessages.RawMessage;
 import net.Zrips.CMILib.Version.Version;
 
@@ -159,7 +161,12 @@ public final class Jobs extends JavaPlugin {
     public static BufferedPaymentThread paymentThread;
     private static DatabaseSaveThread saveTask;
 
-    public static final Map<UUID, FastPayment> FASTPAYMENT = new HashMap<>();
+    private static final int MAX_ENTRIES = 5;
+    public static final LinkedHashMap<UUID, FastPayment> FASTPAYMENT = new LinkedHashMap<UUID, FastPayment>(MAX_ENTRIES + 1, .75F, false) {
+	protected boolean removeEldestEntry(Map.Entry<UUID, FastPayment> eldest) {
+	    return size() > MAX_ENTRIES;
+	}
+    };
 
     protected static VersionChecker versionCheckManager;
     protected static SelectionManager smanager;
@@ -522,7 +529,7 @@ public final class Jobs extends JavaPlugin {
      */
     public static Job getJob(int id) {
 	for (Job job : jobs) {
-	    if (job.getId() == id) {
+	    if (job.getId() == id || job.getLegacyId() == id) {
 		return job;
 	    }
 	}
@@ -537,43 +544,35 @@ public final class Jobs extends JavaPlugin {
     private void startup() {
 	reload(true);
 
-	CompletableFuture<Void> pd = loadAllPlayersData();
-
-	// attempt to add all online players to cache
-	pd.thenAccept(e -> getServer().getOnlinePlayers().forEach(getPlayerManager()::playerJoin));
+	// This goes in sync to avoid issues while loading data
+	loadAllPlayersData();
+	for (Player online : Bukkit.getServer().getOnlinePlayers())
+	    getPlayerManager().playerJoin(online);
     }
 
-    public static CompletableFuture<Void> loadAllPlayersData() {
-	return CompletableFuture.supplyAsync(() -> {
-	    long time = System.currentTimeMillis();
-	    // Cloning to avoid issues
-	    Map<UUID, PlayerInfo> temp = new HashMap<>(getPlayerManager().getPlayersInfoUUIDMap());
-	    Map<Integer, List<JobsDAOData>> playersJobs = dao.getAllJobs();
-	    Map<Integer, PlayerPoints> playersPoints = dao.getAllPoints();
-	    Map<Integer, Map<String, Log>> playersLogs = dao.getAllLogs();
-	    Map<Integer, ArchivedJobs> playersArchives = dao.getAllArchivedJobs();
-	    Map<Integer, PaymentData> playersLimits = dao.loadPlayerLimits();
-
-	    for (Iterator<PlayerInfo> it = temp.values().iterator(); it.hasNext();) {
-		PlayerInfo one = it.next();
-		int id = one.getID();
-		JobsPlayer jPlayer = getPlayerManager().getJobsPlayerOffline(
-		    one,
-		    playersJobs.get(id),
-		    playersPoints.get(id),
-		    playersLogs.get(id),
-		    playersArchives.get(id),
-		    playersLimits.get(id));
-		if (jPlayer != null)
-		    getPlayerManager().addPlayerToCache(jPlayer);
-	    }
-
-	    return time;
-	}).thenAccept(t -> {
-	    if (!getPlayerManager().getPlayersCache().isEmpty())
-		consoleMsg("&e[Jobs] Preloaded " + getPlayerManager().getPlayersCache().size() + " players data in " +
-		    ((int) (((System.currentTimeMillis() - t) / 1000d) * 100) / 100D));
-	});
+    public static void loadAllPlayersData() {
+	long time = System.currentTimeMillis();
+	HashMap<UUID, PlayerInfo> temp = new HashMap<>(getPlayerManager().getPlayersInfoUUIDMap());
+	Map<Integer, List<JobsDAOData>> playersJobs = dao.getAllJobs();
+	Map<Integer, PlayerPoints> playersPoints = dao.getAllPoints();
+	Map<Integer, Map<String, Log>> playersLogs = dao.getAllLogs();
+	Map<Integer, ArchivedJobs> playersArchives = dao.getAllArchivedJobs();
+	Map<Integer, PaymentData> playersLimits = dao.loadPlayerLimits();
+	for (Iterator<PlayerInfo> it = temp.values().iterator(); it.hasNext();) {
+	    PlayerInfo one = it.next();
+	    int id = one.getID();
+	    JobsPlayer jPlayer = getPlayerManager().getJobsPlayerOffline(
+		one,
+		playersJobs.get(id),
+		playersPoints.get(id),
+		playersLogs.get(id),
+		playersArchives.get(id),
+		playersLimits.get(id));
+	    if (jPlayer != null)
+		getPlayerManager().addPlayerToCache(jPlayer);
+	}
+	if (!getPlayerManager().getPlayersCache().isEmpty())
+	    consoleMsg("&e[Jobs] Preloaded " + getPlayerManager().getPlayersCache().size() + " players data in " + ((int) ((System.currentTimeMillis() - time) / 1000.0D * 100.0D) / 100.0D));
     }
 
     public static void convertDatabase() {
@@ -1086,8 +1085,6 @@ public final class Jobs extends JavaPlugin {
 	    }
 
 	} else {
-	    FASTPAYMENT.clear();
-
 	    List<Job> expiredJobs = new ArrayList<>();
 	    for (JobProgression prog : progression) {
 		if (prog.getJob().isWorldBlackListed(block) || prog.getJob().isWorldBlackListed(block, ent)
