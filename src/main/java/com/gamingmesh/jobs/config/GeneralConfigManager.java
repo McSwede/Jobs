@@ -97,7 +97,7 @@ public class GeneralConfigManager {
 	JobsGUIOpenOnBrowse, JobsGUIShowChatBrowse, JobsGUISwitcheButtons, ShowActionNames, hideItemAttributes,
 	DisableJoiningJobThroughGui, FireworkLevelupUse, UseRandom, UsePerPermissionForLeaving,
 	EnableConfirmation, jobsInfoOpensBrowse, MonsterDamageUse, useMaxPaymentCurve,
-	hideJobsInfoWithoutPermission, UseTaxes, TransferToServerAccount, TakeFromPlayersPayment, AutoJobJoinUse, AllowDelevel,
+	hideJobsInfoWithoutPermission, UseTaxes, TransferToServerAccount, TakeFromPlayersPayment, AutoJobJoinUse, AllowDelevel, RomanNumbers,
 	BossBarEnabled = false, BossBarShowOnEachAction = false, BossBarsMessageByDefault = false, ExploreCompact, DBCleaningJobsUse, DBCleaningUsersUse,
 	DisabledWorldsUse, UseAsWhiteListWorldList, PaymentMethodsMoney, PaymentMethodsPoints, PaymentMethodsExp, MythicMobsEnabled,
 	LoggingUse, payForCombiningItems, BlastFurnacesReassign = false, SmokerReassign = false, payForStackedEntities, payForAbove = false,
@@ -375,6 +375,9 @@ public class GeneralConfigManager {
 	c.addComment("Optimizations.AllowDelevel", "When set to true players who gets negative experience can delevel job up to level 1",
 	    "ATTENTION! Set it to true only if you certain that commands performed on level up will not cause issues if player start level and delevel in a row.");
 	AllowDelevel = c.get("Optimizations.AllowDelevel", false);
+
+	c.addComment("Optimizations.RomanNumbers", "Enabling this option some places will indicate players level as XIV instead of 14", "Only or player levels");
+	RomanNumbers = c.get("Optimizations.RomanNumbers", false);
 
 //	c.addComment("Optimizations.UseLocalOfflinePlayersData", "With this set to true, offline player data will be taken from local player data files",
 //	    "This will eliminate small lag spikes when request is being send to mojangs servers for offline players data",
@@ -834,11 +837,14 @@ public class GeneralConfigManager {
 	c.addComment("ExploitProtections.MythicMobs", "MythicMobs plugin support", "Disable if you having issues with it or using old version");
 	MythicMobsEnabled = c.get("ExploitProtections.MythicMobs.enabled", true);
 
-	c.addComment("ExploitProtections.Spawner.PreventSlimeSplit", "Prevent slime splitting when they are from spawner",
-	    "Protects against exploiting as new splitted slimes is treated as naturally spawned and not from spawner");
-	PreventSlimeSplit = c.get("ExploitProtections.Spawner.PreventSlimeSplit", true);
-	c.addComment("ExploitProtections.Spawner.PreventMagmaCubeSplit", "Prevent magmacube splitting when they are from spawner");
-	PreventMagmaCubeSplit = c.get("ExploitProtections.Spawner.PreventMagmaCubeSplit", true);
+	// Only applies for older versions.
+	if (Version.isCurrentLower(Version.v1_14_R1)) {
+	    c.addComment("ExploitProtections.Spawner.PreventSlimeSplit", "Prevent slime splitting when they are from spawner",
+		"Protects against exploiting as new splitted slimes is treated as naturally spawned and not from spawner");
+	    PreventSlimeSplit = c.get("ExploitProtections.Spawner.PreventSlimeSplit", true);
+	    c.addComment("ExploitProtections.Spawner.PreventMagmaCubeSplit", "Prevent magmacube splitting when they are from spawner");
+	    PreventMagmaCubeSplit = c.get("ExploitProtections.Spawner.PreventMagmaCubeSplit", true);
+	}
 
 	c.addComment("ExploitProtections.Smelt.PreventHopperFillUps", "Prevent payments when hoppers moving items into furnace", "Player will not get paid, but items will be smelted");
 	PreventHopperFillUps = c.get("ExploitProtections.Smelt.PreventHopperFillUps", true);

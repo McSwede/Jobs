@@ -224,7 +224,7 @@ public final class JobsPaymentListener implements Listener {
 	ItemStack toCraft = event.getCurrentItem();
 	ItemStack toStore = event.getCursor();
 	// Make sure we are actually traded anything
-	if (hasItems(toCraft))
+	if (hasItems(toCraft)) {
 	    if (event.isShiftClick())
 		schedulePostDetection(player, toCraft.clone(), jPlayer, resultStack.clone(), ActionType.VTRADE);
 	    else {
@@ -241,13 +241,16 @@ public final class JobsPaymentListener implements Listener {
 		    }
 		}
 	    }
+	}
     }
 
     @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
     public void onCowMilking(PlayerInteractEntityEvent event) {
-	Entity cow = event.getRightClicked();
+	Entity entity = event.getRightClicked();
 
-	if (cow.getType() != EntityType.COW && cow.getType() != EntityType.MUSHROOM_COW)
+	CMIEntityType type = CMIEntityType.getByType(entity.getType());
+
+	if (type != CMIEntityType.COW && type != CMIEntityType.MUSHROOM_COW && type != CMIEntityType.GOAT)
 	    return;
 
 	Player player = event.getPlayer();
@@ -257,7 +260,7 @@ public final class JobsPaymentListener implements Listener {
 	    return;
 	}
 
-	if (itemInHand.getType() == Material.BOWL && cow.getType() != EntityType.MUSHROOM_COW) {
+	if (itemInHand.getType() == Material.BOWL && entity.getType() != EntityType.MUSHROOM_COW) {
 	    return;
 	}
 
@@ -281,7 +284,7 @@ public final class JobsPaymentListener implements Listener {
 	}
 
 	if (Jobs.getGCManager().CowMilkingTimer > 0) {
-	    UUID cowUUID = cow.getUniqueId();
+	    UUID cowUUID = entity.getUniqueId();
 	    Long time = cowMilkingTimer.getIfPresent(cowUUID);
 	    if (time != null) {
 		if (System.currentTimeMillis() < time + Jobs.getGCManager().CowMilkingTimer) {
@@ -297,7 +300,7 @@ public final class JobsPaymentListener implements Listener {
 	    }
 	}
 
-	Jobs.action(jPlayer, new EntityActionInfo(cow, ActionType.MILK));
+	Jobs.action(jPlayer, new EntityActionInfo(entity, ActionType.MILK));
     }
 
     @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
@@ -364,18 +367,25 @@ public final class JobsPaymentListener implements Listener {
 	if (ownerShip == null)
 	    return;
 
-	List<MetadataValue> data = block.getMetadata(ownerShip.getMetadataName());
-	if (data.isEmpty())
-	    return;
+	UUID uuid = null;
+
+	List<MetadataValue> data = ownerShip.getBlockMetadatas(block);
+	if (data.isEmpty()) {
+	    uuid = ownerShip.getOwnerByLocation(block.getLocation());
+	    if (uuid == null)
+		return;
+	}
 
 	// only care about first
-	MetadataValue value = data.get(0);
-	UUID uuid;
-	try {
-	    uuid = UUID.fromString(value.asString());
-	} catch (IllegalArgumentException e) {
+	if (uuid == null && !data.isEmpty()) {
+	    MetadataValue value = data.get(0);
+	    try {
+		uuid = UUID.fromString(value.asString());
+	    } catch (IllegalArgumentException e) {
+		return;
+	    }
+	} else
 	    return;
-	}
 
 	JobsPlayer jPlayer = Jobs.getPlayerManager().getJobsPlayer(uuid);
 	if (jPlayer == null)
@@ -1072,18 +1082,25 @@ public final class JobsPaymentListener implements Listener {
 	    return;
 	}
 
+	UUID uuid = null;
+
 	List<MetadataValue> data = bos.getBlockMetadatas(block);
-	if (data.isEmpty())
-	    return;
+	if (data.isEmpty()) {
+	    uuid = bos.getOwnerByLocation(block.getLocation());
+	    if (uuid == null)
+		return;
+	}
 
 	// only care about first
-	MetadataValue value = data.get(0);
-	UUID uuid;
-	try {
-	    uuid = UUID.fromString(value.asString());
-	} catch (IllegalArgumentException e) {
+	if (uuid == null && !data.isEmpty()) {
+	    MetadataValue value = data.get(0);
+	    try {
+		uuid = UUID.fromString(value.asString());
+	    } catch (IllegalArgumentException e) {
+		return;
+	    }
+	} else
 	    return;
-	}
 
 	Player player = Bukkit.getPlayer(uuid);
 	if (player == null || !player.isOnline())
@@ -1434,6 +1451,11 @@ public final class JobsPaymentListener implements Listener {
 
     @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
     public void onCreatureSpawn(SlimeSplitEvent event) {
+
+	// As of 1.14 we have appropriate event to mob changes
+	if (Version.isCurrentEqualOrHigher(Version.v1_14_R1))
+	    return;
+
 	if (!Jobs.getGCManager().canPerformActionInWorld(event.getEntity().getWorld()))
 	    return;
 
@@ -1655,7 +1677,7 @@ public final class JobsPaymentListener implements Listener {
 
 		if (report)
 		    CMIActionBar.send(p, Jobs.getLanguage().getMessage("general.error.noRegistration", "[block]", name));
-	    } else if (done == ownershipFeedback.newReg && jPlayer != null) {
+	    } else if (done == ownershipFeedback.newReg && jPlayer != null && jPlayer.getMaxOwnerShipAllowed(blockOwner.getType()) > 0) {
 		CMIActionBar.send(p, Jobs.getLanguage().getMessage("general.error.newRegistration", "[block]", name,
 		    "[current]", blockOwner.getTotal(jPlayer.getUniqueId()),
 		    "[max]", jPlayer.getMaxOwnerShipAllowed(blockOwner.getType()) == 0 ? "-" : jPlayer.getMaxOwnerShipAllowed(blockOwner.getType())));
@@ -1717,6 +1739,7 @@ public final class JobsPaymentListener implements Listener {
 	    return;
 
 	ExploreRespond respond = Jobs.getExplore().chunkRespond(jPlayer.getUserId(), event.getNewChunk());
+
 	if (!respond.isNewChunk())
 	    return;
 

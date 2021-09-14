@@ -63,7 +63,6 @@ import com.gamingmesh.jobs.stuff.Util;
 
 import net.Zrips.CMILib.ActionBar.CMIActionBar;
 import net.Zrips.CMILib.Items.CMIItemStack;
-import net.Zrips.CMILib.Logs.CMIDebug;
 import net.Zrips.CMILib.Messages.CMIMessages;
 import net.Zrips.CMILib.NBT.CMINBT;
 import net.Zrips.CMILib.Version.Version;
@@ -126,7 +125,7 @@ public class PlayerManager {
 	// Checking duplicated UUID's which usually is a cause of previous bugs
 	if (playerUUIDMap.containsKey(info.getUuid()) && playerUUIDMap.get(info.getUuid()).getID() != info.getID()) {
 	    int id = playerUUIDMap.get(info.getUuid()).getID();
-	    CMIMessages.consoleMessage("&7Duplicate! &5" + info.getName() + " &7same UUID for 2 entries in dabase. Please remove of one them from users table id1: &2" + id + " &7id2: &2" + info.getID());
+	    CMIMessages.consoleMessage("&7Duplicate! &5" + info.getName() + " &7same UUID for 2 entries in database. Please remove of one them from users table id1: &2" + id + " &7id2: &2" + info.getID());
 
 	    if (id < info.getID()) {
 		return;
@@ -136,7 +135,7 @@ public class PlayerManager {
 	// Checking duplicated names which usually is a cause of previous bugs
 	if (playerNameMap.containsKey(info.getName().toLowerCase()) && playerNameMap.get(info.getName().toLowerCase()).getID() != info.getID()) {
 	    int id = playerNameMap.get(info.getName().toLowerCase()).getID();
-	    CMIMessages.consoleMessage("&7Name Duplicate! &5" + info.getName() + " &7same UUID for 2 entries in dabase. Please remove of one them from users table id1: &2" + id + " &7id2: &2" + info
+	    CMIMessages.consoleMessage("&7Name Duplicate! &5" + info.getName() + " &7same UUID for 2 entries in database. Please remove of one them from users table id1: &2" + id + " &7id2: &2" + info
 		.getID());
 	    if (id < info.getID()) {
 		return;
@@ -284,6 +283,8 @@ public class PlayerManager {
 	jPlayer.onConnect();
 	jPlayer.reloadHonorific();
 	Jobs.getPermissionHandler().recalculatePermissions(jPlayer);
+	
+	addPlayerToCache(jPlayer);
     }
 
     /**
@@ -676,7 +677,7 @@ public class PlayerManager {
 
 	    message = message.replace("%jobname%", job.getJobDisplayName());
 	    message = message.replace("%playername%", player != null ? plugin.getComplement().getDisplayName(player) : jPlayer.getName());
-	    message = message.replace("%joblevel%", Integer.toString(prog.getLevel()));
+	    message = message.replace("%joblevel%", prog.getLevelFormatted());
 	    message = message.replace("%lostLevel%", Integer.toString(oldLevel));
 
 	    if (player != null && (Jobs.getGCManager().LevelChangeActionBar || Jobs.getGCManager().LevelChangeChat)) {
@@ -784,7 +785,7 @@ public class PlayerManager {
 		.getChatColor().toString() + levelUpEvent.getOldTitle().getName());
 
 	message = message.replace("%playername%", player != null ? plugin.getComplement().getDisplayName(player) : jPlayer.getName());
-	message = message.replace("%joblevel%", Integer.toString(prog.getLevel()));
+	message = message.replace("%joblevel%", prog.getLevelFormatted());
 
 	if (Jobs.getGCManager().isBroadcastingLevelups() || Jobs.getGCManager().LevelChangeActionBar || Jobs.getGCManager().LevelChangeChat) {
 	    for (String line : message.split("\n")) {
