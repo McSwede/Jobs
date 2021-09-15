@@ -467,11 +467,18 @@ public class LanguageManager {
 	    c.get("command.browse.output.jobHeader", "&2========== [jobname] =========");
 	    c.get("command.browse.output.chooseJob", "&7&n&oChoose this job");
 	    c.get("command.browse.output.chooseJobHover", "&7Click here to get this job");
+	    
+	    c.get("command.ownedblocks.help.info", "Check block ownership");
+	    c.get("command.ownedblocks.help.args", "[playername]");
+	    Jobs.getGCManager().getCommandArgs().put("ownedblocks", Arrays.asList("[playername]"));
+	    c.get("command.ownedblocks.output.list", "&6[place]. &e[type] -> [location]");
+	    c.get("command.ownedblocks.output.listHover", "&6Click to remove: [location]");
 
 	    c.get("command.clearownership.help.info", "Clear block ownership");
 	    c.get("command.clearownership.help.args", "[playername]");
 	    Jobs.getGCManager().getCommandArgs().put("clearownership", Arrays.asList("[playername]"));
 	    c.get("command.clearownership.output.cleared", "&2Removed &7[furnaces] &2furnaces, &7[brewing] &2brewing stands, &7[smoker]&2 smokers and &7[blast]&2 blast furnaces.");
+	    c.get("command.clearownership.output.lost", "&cLost ownership of &7[type] &cat [location]");
 
 	    c.get("command.skipquest.help.info", "Skip defined quest and get new one");
 	    c.get("command.skipquest.help.args", "[jobname] [questname] (playerName)");
