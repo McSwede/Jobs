@@ -29,6 +29,8 @@ import java.util.Map;
 import java.util.Random;
 import java.util.function.BiPredicate;
 
+import com.gamingmesh.jobs.actions.EnchantActionInfo;
+import com.gamingmesh.jobs.stuff.Util;
 import org.bukkit.block.Block;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Entity;
@@ -307,6 +309,10 @@ public class Job {
 		return jobInfo.getName().equalsIgnoreCase(subName) || (jobInfo.getName() + ":" + jobInfo.getMeta()).equalsIgnoreCase(subName);
 	    }
 
+	    if (actionInfo instanceof EnchantActionInfo) {
+		return Util.enchantMatchesActionInfo(jobInfo.getName(), (EnchantActionInfo) actionInfo);
+	    }
+
 	    return jobInfo.getName().equalsIgnoreCase(action.getNameWithSub()) ||
 		(jobInfo.getName() + ":" + jobInfo.getMeta()).equalsIgnoreCase(action.getNameWithSub()) ||
 		jobInfo.getName().equalsIgnoreCase(action.getName());
@@ -566,7 +572,8 @@ public class Job {
 
 	if (fDescription != null) {
 	    this.fDescription.addAll(fDescription);
-	}
+        this.description = String.join("\n",this.fDescription);
+    }
     }
 
     public void setMaxLevelCommands(List<String> commands) {

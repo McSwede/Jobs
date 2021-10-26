@@ -105,7 +105,8 @@ public class BlockOwnerShip {
 		Player owningPlayer = Bukkit.getPlayer(ownerUUID);
 
 		if (owningPlayer != null && owningPlayer.isOnline()) {
-		    owningPlayer.sendMessage(Jobs.getLanguage().getMessage("command.clearownership.output.lost", "[type]", CMIMaterial.get(type.toString()).getName(), "[location]", CMILocation.toString(block.getLocation(), ":",
+		    owningPlayer.sendMessage(Jobs.getLanguage().getMessage("command.clearownership.output.lost", "[type]", CMIMaterial.get(type.toString()).getName(), "[location]", CMILocation.toString(
+			block.getLocation(), ":",
 			true, true)));
 		}
 
@@ -158,33 +159,36 @@ public class BlockOwnerShip {
     }
 
     public boolean remove(Block block) {
-	UUID uuid = null;
-	List<MetadataValue> data = getBlockMetadatas(block);
+	UUID uuid = getOwnerByLocation(block.getLocation());
 
-	if (!data.isEmpty()) {
-	    try {
-		uuid = UUID.fromString(data.get(0).asString());
-	    } catch (IllegalArgumentException e) {
+	if (uuid == null) {
+	    List<MetadataValue> data = getBlockMetadatas(block);
+	    if (!data.isEmpty()) {
+		try {
+		    uuid = UUID.fromString(data.get(0).asString());
+		} catch (IllegalArgumentException e) {
+		}
 	    }
 	}
-
 	if (uuid == null) {
 	    return false;
 	}
+	return remove(uuid, block);
+    }
 
+    public boolean remove(UUID uuid, Block block) {
+	if (uuid == null) {
+	    return false;
+	}
 	HashMap<String, blockLoc> ls = blockOwnerShips.getOrDefault(uuid, new HashMap<String, blockLoc>());
 	String blockLoc = CMILocation.toString(block.getLocation(), ":", true, true);
-
 	com.gamingmesh.jobs.stuff.blockLoc removed = ls.remove(blockLoc);
 	if (removed != null) {
 	    block.removeMetadata(metadataName, plugin);
-
 	    Map<String, UUID> oldRecord = ownerMapByLocation.get(block.getLocation().getWorld().getName());
 	    if (oldRecord != null)
 		oldRecord.remove(block.getLocation().getBlockX() + ":" + block.getLocation().getBlockY() + ":" + block.getLocation().getBlockZ());
-
 	}
-
 	return removed != null;
     }
 
@@ -320,7 +324,7 @@ public class BlockOwnerShip {
 	}
 
 	if (total > 0) {
-	    Jobs.consoleMsg("&e[Jobs] Loaded " + total + " " + path.toLowerCase() + " for reassigning.");
+	    Jobs.consoleMsg("&eLoaded &6" + total + " " + path.toLowerCase() + " &efor reassigning.");
 	}
     }
 

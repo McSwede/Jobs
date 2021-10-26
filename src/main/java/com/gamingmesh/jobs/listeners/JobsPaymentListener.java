@@ -362,6 +362,7 @@ public final class JobsPaymentListener implements Listener {
 	    return;
 
 	BlockOwnerShip ownerShip = plugin.getBlockOwnerShip(CMIMaterial.get(block), false).orElse(null);
+
 	if (ownerShip == null)
 	    return;
 
@@ -382,7 +383,9 @@ public final class JobsPaymentListener implements Listener {
 	    } catch (IllegalArgumentException e) {
 		return;
 	    }
-	} else
+	}
+
+	if (uuid == null)
 	    return;
 
 	JobsPlayer jPlayer = Jobs.getPlayerManager().getJobsPlayer(uuid);
@@ -405,8 +408,9 @@ public final class JobsPaymentListener implements Listener {
 	    return;
 
 	ItemStack contents = event.getContents().getIngredient();
-	if (contents != null)
+	if (contents != null) {
 	    Jobs.action(jPlayer, new ItemActionInfo(contents, ActionType.BREW));
+	}
     }
 
     @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
@@ -418,6 +422,9 @@ public final class JobsPaymentListener implements Listener {
 
 	Player player = event.getPlayer();
 
+	// Remove block owner ships
+	plugin.removeBlockOwnerShip(block);
+
 	// check if player is riding
 	if (Jobs.getGCManager().disablePaymentIfRiding && player.isInsideVehicle())
 	    return;
@@ -425,9 +432,6 @@ public final class JobsPaymentListener implements Listener {
 	// check if in creative
 	if (!payIfCreative(player))
 	    return;
-
-	// Remove block owner ships
-	plugin.removeBlockOwnerShip(block);
 
 	if (!Jobs.getPermissionHandler().hasWorldPermission(player, player.getLocation().getWorld().getName()))
 	    return;
@@ -840,6 +844,19 @@ public final class JobsPaymentListener implements Listener {
 	return a.getAmount() + b.getAmount() <= a.getType().getMaxStackSize();
     }
 
+    private static String getEnchantName(Enchantment enchant) {
+	try {
+	    return enchant.getKey().getKey().toLowerCase().replace("_", "").replace("minecraft:", "");
+
+	} catch (Throwable e) {
+	    CMIEnchantment cmiEnchant = CMIEnchantment.get(enchant);
+	    if (cmiEnchant != null)
+		return cmiEnchant.toString();
+	}
+
+	return null;
+    }
+
     @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
     public void onInventoryRepair(InventoryClickEvent event) {
 	// If event is nothing or place, do nothing
@@ -951,14 +968,16 @@ public final class JobsPaymentListener implements Listener {
 	ItemStack secondSlotItem = inv.getItem(1);
 
 	if (Jobs.getGCManager().PayForEnchantingOnAnvil && secondSlotItem != null && secondSlotItem.getType() == Material.ENCHANTED_BOOK) {
-	    for (Map.Entry<Enchantment, Integer> oneEnchant : resultStack.getEnchantments().entrySet()) {
+	    Map<Enchantment, Integer> newEnchantments = Util.mapUnique(resultStack.getEnchantments(), firstSlot.getEnchantments());
+
+	    for (Map.Entry<Enchantment, Integer> oneEnchant : newEnchantments.entrySet()) {
 		Enchantment enchant = oneEnchant.getKey();
 		if (enchant == null)
 		    continue;
 
-		CMIEnchantment e = CMIEnchantment.get(enchant);
-		if (e != null)
-		    Jobs.action(jPlayer, new EnchantActionInfo(e.toString(), oneEnchant.getValue(), ActionType.ENCHANT));
+		String enchantName = getEnchantName(enchant);
+		if (enchantName != null)
+		    Jobs.action(jPlayer, new EnchantActionInfo(enchantName, oneEnchant.getValue(), ActionType.ENCHANT));
 	    }
 	} else if (secondSlotItem == null || secondSlotItem.getType() != Material.ENCHANTED_BOOK) // Enchanted books does not have durability
 	    Jobs.action(jPlayer, new ItemActionInfo(resultStack, ActionType.REPAIR));
@@ -1013,16 +1032,7 @@ public final class JobsPaymentListener implements Listener {
 	    if (enchant == null)
 		continue;
 
-	    String enchantName = null;
-
-	    try {
-		enchantName = enchant.getKey().getKey().toLowerCase().replace("_", "").replace("minecraft:", "");
-	    } catch (Throwable e) {
-		CMIEnchantment ench = CMIEnchantment.get(enchant);
-		if (ench != null)
-		    enchantName = ench.toString();
-	    }
-
+	    String enchantName = getEnchantName(enchant);
 	    if (enchantName != null)
 		Jobs.action(jPlayer, new EnchantActionInfo(enchantName, oneEnchant.getValue(), ActionType.ENCHANT));
 	}
@@ -1639,13 +1649,13 @@ public final class JobsPaymentListener implements Listener {
 		    if (level.getLevel() == level.getMaximumLevel()) {
 			Jobs.action(jPlayer, new BlockCollectInfo(CMIMaterial.BONE_MEAL, ActionType.COLLECT), block);
 		    }
-		} else if ((cmat == CMIMaterial.SWEET_BERRY_BUSH || cmat == CMIMaterial.CAVE_VINES_PLANT) && hand != CMIMaterial.BONE_MEAL.getMaterial()) {
+		} else if ((cmat == CMIMaterial.SWEET_BERRY_BUSH || cmat == CMIMaterial.CAVE_VINES_PLANT || cmat == CMIMaterial.CAVE_VINES) && hand != CMIMaterial.BONE_MEAL.getMaterial()) {
 
 		    if (cmat == CMIMaterial.SWEET_BERRY_BUSH) {
 			Ageable age = (Ageable) block.getBlockData();
 			if (age.getAge() >= 2)
 			    Jobs.action(jPlayer, new BlockCollectInfo(CMIMaterial.SWEET_BERRIES, ActionType.COLLECT, age.getAge()), block);
-		    } else if (cmat == CMIMaterial.CAVE_VINES_PLANT) {
+		    } else {
 			org.bukkit.block.data.type.CaveVinesPlant caveVines = (org.bukkit.block.data.type.CaveVinesPlant) block.getBlockData();
 			if (caveVines.isBerries()) {
 			    Jobs.action(jPlayer, new BlockCollectInfo(CMIMaterial.GLOW_BERRIES, ActionType.COLLECT), block);
