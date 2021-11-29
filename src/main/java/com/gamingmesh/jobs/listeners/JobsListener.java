@@ -67,6 +67,7 @@ import org.bukkit.permissions.PermissionDefault;
 import org.bukkit.plugin.PluginManager;
 
 import com.gamingmesh.jobs.Jobs;
+import com.gamingmesh.jobs.PermissionHandler;
 import com.gamingmesh.jobs.Signs.SignTopType;
 import com.gamingmesh.jobs.Signs.SignUtil;
 import com.gamingmesh.jobs.Signs.jobsSign;
@@ -346,7 +347,7 @@ public class JobsListener implements Listener {
 	    return;
 
 	String color = Jobs.getGCManager().SignsColorizeJobName ? job.getChatColor().toString() : "";
-	event.setLine(2, convert(color + job.getName()));
+	event.setLine(2, convert(color + job.getDisplayName()));
     }
 
     private final Pattern pattern = Pattern.compile("&([0-9a-fk-or])");
@@ -359,8 +360,10 @@ public class JobsListener implements Listener {
     public void onWorldLoad(WorldLoadEvent event) {
 	PluginManager pm = plugin.getServer().getPluginManager();
 	String name = event.getWorld().getName().toLowerCase();
-	if (pm.getPermission("jobs.world." + name) == null)
+	if (pm.getPermission("jobs.world." + name) == null && !PermissionHandler.worldsRegistered.contains(name)) {
 	    pm.addPermission(new Permission("jobs.world." + name, PermissionDefault.TRUE));
+	    PermissionHandler.worldsRegistered.add(name);
+	}
     }
 
     @EventHandler(priority = EventPriority.LOW, ignoreCancelled = true)
