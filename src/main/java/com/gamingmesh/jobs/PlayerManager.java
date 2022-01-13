@@ -1,33 +1,29 @@
 /**
  * Jobs Plugin for Bukkit
  * Copyright (C) 2011 Zak Ford <zak.j.ford@gmail.com>
- * 
+ *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
- * 
+ *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
- * 
+ *
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
 package com.gamingmesh.jobs;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
-import java.util.UUID;
+import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.ThreadLocalRandom;
 
+import org.bukkit.Bukkit;
 import org.bukkit.Color;
 import org.bukkit.FireworkEffect;
 import org.bukkit.FireworkEffect.Type;
@@ -69,30 +65,18 @@ import net.Zrips.CMILib.Version.Version;
 
 public class PlayerManager {
 
-    private final ConcurrentMap<String, JobsPlayer> playersCache = new ConcurrentHashMap<>();
     private final ConcurrentMap<UUID, JobsPlayer> playersUUIDCache = new ConcurrentHashMap<>();
-    private final ConcurrentMap<String, JobsPlayer> players = new ConcurrentHashMap<>();
     private final ConcurrentMap<UUID, JobsPlayer> playersUUID = new ConcurrentHashMap<>();
 
     private final String mobSpawnerMetadata = "jobsMobSpawner";
 
-    private final Map<UUID, PlayerInfo> playerUUIDMap = new HashMap<>();
-    private final Map<Integer, PlayerInfo> playerIdMap = new HashMap<>();
-    private final Map<String, PlayerInfo> playerNameMap = new HashMap<>();
+    private final Map<UUID, PlayerInfo> playerUUIDMap = new LinkedHashMap<>();
+    private final Map<Integer, PlayerInfo> playerIdMap = new LinkedHashMap<>();
 
     private final Jobs plugin;
 
     public PlayerManager(Jobs plugin) {
 	this.plugin = plugin;
-    }
-
-    /**
-     * @deprecated Use {@link JobsPlayer#getPointsData} instead
-     * @return {@link com.gamingmesh.jobs.economy.PointsData}
-     */
-    @Deprecated
-    public com.gamingmesh.jobs.economy.PointsData getPointsData() {
-	return Jobs.getPointsData();
     }
 
     /**
@@ -110,13 +94,10 @@ public class PlayerManager {
     public void clearMaps() {
 	playerUUIDMap.clear();
 	playerIdMap.clear();
-	playerNameMap.clear();
     }
 
     public void clearCache() {
-	playersCache.clear();
 	playersUUIDCache.clear();
-	players.clear();
 	playersUUID.clear();
     }
 
@@ -125,20 +106,10 @@ public class PlayerManager {
 	// Checking duplicated UUID's which usually is a cause of previous bugs
 	if (playerUUIDMap.containsKey(info.getUuid()) && playerUUIDMap.get(info.getUuid()).getID() != info.getID()) {
 	    int id = playerUUIDMap.get(info.getUuid()).getID();
-	    if (Jobs.getGCManager().isInformDuplicates())
+	    if (Jobs.getGCManager().isInformDuplicates()) {
 		CMIMessages.consoleMessage("&7Duplicate! &5" + info.getName() + " &7same UUID for 2 entries in database. Please remove of one them from users table id1: &2" + id + " &7id2: &2" + info
 		    .getID());
-	    if (id < info.getID()) {
-		return;
 	    }
-	}
-
-	// Checking duplicated names which usually is a cause of previous bugs
-	if (playerNameMap.containsKey(info.getName().toLowerCase()) && playerNameMap.get(info.getName().toLowerCase()).getID() != info.getID()) {
-	    int id = playerNameMap.get(info.getName().toLowerCase()).getID();
-	    if (Jobs.getGCManager().isInformDuplicates())
-		CMIMessages.consoleMessage("&7Name Duplicate! &5" + info.getName() + " &7same UUID for 2 entries in database. Please remove of one them from users table id1: &2" + id + " &7id2: &2" + info
-		    .getID());
 	    if (id < info.getID()) {
 		return;
 	    }
@@ -146,41 +117,26 @@ public class PlayerManager {
 
 	playerUUIDMap.put(info.getUuid(), info);
 	playerIdMap.put(info.getID(), info);
-	playerNameMap.put(info.getName().toLowerCase(), info);
     }
 
     public void addPlayerToCache(JobsPlayer jPlayer) {
-	String jName = jPlayer.getName().toLowerCase();
-
-	playersCache.put(jName, jPlayer);
-
-	if (jPlayer.getUniqueId() != null) {
-	    playersUUIDCache.put(jPlayer.getUniqueId(), jPlayer);
-	}
+	playersUUIDCache.putIfAbsent(jPlayer.playerUUID, jPlayer);
     }
 
     public void addPlayer(JobsPlayer jPlayer) {
-	String jName = jPlayer.getName().toLowerCase();
-
-	players.put(jName, jPlayer);
-
-	if (jPlayer.getUniqueId() != null)
-	    playersUUID.put(jPlayer.getUniqueId(), jPlayer);
+	playersUUID.putIfAbsent(jPlayer.getUniqueId(), jPlayer);
     }
 
     /**
      * Removes the given player from the memory.
-     * 
+     *
      * @param player {@link Player}
-     * @return {@link JobsPlayer}
      */
-    public JobsPlayer removePlayer(Player player) {
+    public void removePlayer(Player player) {
 	if (player == null)
-	    return null;
+	    return;
 
-	players.remove(player.getName().toLowerCase());
-
-	return playersUUID.remove(player.getUniqueId());
+	playersUUID.remove(player.getUniqueId());
     }
 
     public ConcurrentMap<UUID, JobsPlayer> getPlayersCache() {
@@ -194,7 +150,7 @@ public class PlayerManager {
     /**
      * Returns the player identifier by its name. This will returns
      * -1 if the player is not cached.
-     * 
+     *
      * @param name the player name
      * @return the identifier
      */
@@ -206,7 +162,7 @@ public class PlayerManager {
     /**
      * Returns the player identifier by its uuid. This will returns
      * -1 if the player is not cached.
-     * 
+     *
      * @param uuid player {@link UUID}
      * @return the identifier
      */
@@ -218,18 +174,19 @@ public class PlayerManager {
     /**
      * Returns the {@link PlayerInfo} for the given name. This will returns
      * null if the player is not cached.
-     * 
+     *
      * @param name the player name
      * @return {@link PlayerInfo}
      */
     public PlayerInfo getPlayerInfo(String name) {
-	return playerNameMap.get(name.toLowerCase());
+	UUID playerUUID = Bukkit.getPlayerUniqueId(name);
+	return playerUUIDMap.get(playerUUID);
     }
 
     /**
      * Returns the {@link PlayerInfo} for the given identifier. This will returns
      * null if the player is not cached.
-     * 
+     *
      * @param id the player id
      * @return {@link PlayerInfo}
      */
@@ -240,7 +197,7 @@ public class PlayerManager {
     /**
      * Returns the {@link PlayerInfo} for the given uuid. This will returns
      * null if the player is not cached.
-     * 
+     *
      * @param uuid player {@link UUID}
      * @return {@link PlayerInfo}
      */
@@ -252,7 +209,7 @@ public class PlayerManager {
      * Handles join of new player synchronously. This can be called
      * within an asynchronous operation in order to load the player
      * from database if it is not cached into memory.
-     * 
+     *
      * @param player {@link Player}
      */
     public void playerJoin(Player player) {
@@ -291,7 +248,7 @@ public class PlayerManager {
 
     /**
      * Handles player quit
-     * 
+     *
      * @param player {@link Player}
      */
     public void playerQuit(Player player) {
@@ -310,7 +267,7 @@ public class PlayerManager {
      * Removes all jobs player miscellaneous settings like boss bar.
      */
     public void removePlayerAdditions() {
-	for (JobsPlayer jPlayer : players.values()) {
+	for (JobsPlayer jPlayer : playersUUID.values()) {
 	    jPlayer.clearBossMaps();
 	    jPlayer.getUpdateBossBarFor().clear();
 	}
@@ -322,28 +279,22 @@ public class PlayerManager {
     public void saveAll() {
 	/*
 	 * Saving is a three step process to minimize synchronization locks when called asynchronously.
-	 * 
+	 *
 	 * 1) Safely copy list for saving.
 	 * 2) Perform save on all players on copied list.
 	 * 3) Garbage collect the real list to remove any offline players with saved data
 	 */
-	for (JobsPlayer jPlayer : new ArrayList<>(players.values()))
+	for (JobsPlayer jPlayer : new ArrayList<>(playersUUID.values()))
 	    jPlayer.save();
 
-	Iterator<JobsPlayer> iter = players.values().iterator();
-	while (iter.hasNext()) {
-	    JobsPlayer jPlayer = iter.next();
-
-	    if (jPlayer.isSaved() && !jPlayer.isOnline())
-		iter.remove();
-	}
+	playersUUID.values().removeIf(jPlayer -> jPlayer.isSaved() && !jPlayer.isOnline());
 
 	Jobs.getBpManager().saveCache();
     }
 
     /**
      * Converts the cache of all the players into a new one.
-     * 
+     *
      * @param resetID true to not insert into database and reset the players id
      */
     public void convertChacheOfPlayers(boolean resetID) {
@@ -380,7 +331,7 @@ public class PlayerManager {
      * <p>
      * This can return null sometimes if the given player
      * is not cached into memory.
-     * 
+     *
      * @param player {@link Player}
      * @return {@link JobsPlayer} the player job info of the player
      */
@@ -393,7 +344,7 @@ public class PlayerManager {
      * <p>
      * This can return null sometimes if the given player
      * is not cached into memory.
-     * 
+     *
      * @param player the player uuid
      * @return {@link JobsPlayer} the player job info of the player
      */
@@ -407,19 +358,19 @@ public class PlayerManager {
      * <p>
      * This can return null sometimes if the given player
      * is not cached into memory.
-     * 
+     *
      * @param player name - the player name who's job you're getting
      * @return {@link JobsPlayer} the player job info of the player
      */
     public JobsPlayer getJobsPlayer(String playerName) {
-	playerName = playerName.toLowerCase();
-	JobsPlayer jPlayer = players.get(playerName);
-	return jPlayer != null ? jPlayer : playersCache.get(playerName);
+	UUID playerUUID = Bukkit.getPlayerUniqueId(playerName);
+	JobsPlayer jPlayer = playersUUID.get(playerUUID);
+	return jPlayer != null ? jPlayer : playersUUIDCache.get(playerUUID);
     }
 
     /**
      * Gets the player job offline data for specific {@link PlayerInfo}
-     * 
+     *
      * @param info {@link PlayerInfo}
      * @param jobs the list of jobs data from database
      * @param points {@link PlayerPoints}
@@ -489,7 +440,7 @@ public class PlayerManager {
 
     /**
      * Causes player to join to the given job.
-     * 
+     *
      * @param jPlayer {@link JobsPlayer}
      * @param job {@link Job}
      */
@@ -522,7 +473,7 @@ public class PlayerManager {
 
     /**
      * Causes player to leave the given job.
-     * 
+     *
      * @param jPlayer {@link JobsPlayer}
      * @param job {@link Job}
      */
@@ -557,7 +508,7 @@ public class PlayerManager {
 
     /**
      * Causes player to leave all their jobs
-     * 
+     *
      * @param jPlayer {@link JobsPlayer}
      */
     public void leaveAllJobs(JobsPlayer jPlayer) {
@@ -569,7 +520,7 @@ public class PlayerManager {
 
     /**
      * Transfers player job to a new one
-     * 
+     *
      * @param jPlayer {@link JobsPlayer}
      * @param oldjob - the old job
      * @param newjob - the new job
@@ -587,7 +538,7 @@ public class PlayerManager {
 
     /**
      * Promotes player in their job
-     * 
+     *
      * @param jPlayer {@link JobsPlayer}
      * @param job - the job
      * @param levels - number of levels to promote
@@ -601,7 +552,7 @@ public class PlayerManager {
 
     /**
      * Demote player in their job
-     * 
+     *
      * @param jPlayer {@link JobsPlayer}
      * @param job - the job
      * @param levels - number of levels to demote
@@ -615,7 +566,7 @@ public class PlayerManager {
 
     /**
      * Adds experience to the player
-     * 
+     *
      * @param jPlayer {@link JobsPlayer}
      * @param job - the job
      * @param experience - experience gained
@@ -640,7 +591,7 @@ public class PlayerManager {
 
     /**
      * Removes experience from the player
-     * 
+     *
      * @param jPlayer {@link JobsPlayer}
      * @param job {@link Job}
      * @param experience - experience gained
@@ -661,7 +612,7 @@ public class PlayerManager {
 
     /**
      * Broadcasts level up about a player
-     * 
+     *
      * @param jPlayer {@link JobsPlayer}
      * @param job {@link Job}
      * @param oldLevel
@@ -873,7 +824,7 @@ public class PlayerManager {
 
     /**
      * Performs command on level up
-     * 
+     *
      * @param jPlayer {@link JobsPlayer}
      * @param job {@link Job}
      * @param oldLevel
@@ -901,7 +852,7 @@ public class PlayerManager {
 
     /**
      * Checks whenever the given jobs player is under the max allowed jobs.
-     * 
+     *
      * @param player {@link JobsPlayer}
      * @param currentCount the current jobs size
      * @return true if the player is under the given jobs size
@@ -912,7 +863,7 @@ public class PlayerManager {
 
     /**
      * Gets the maximum jobs from player.
-     * 
+     *
      * @param jPlayer {@link JobsPlayer}
      * @return the maximum allowed jobs
      */
@@ -949,7 +900,7 @@ public class PlayerManager {
      * Perform reload for all jobs players.
      */
     public void reload() {
-	for (JobsPlayer jPlayer : players.values()) {
+	for (JobsPlayer jPlayer : playersUUID.values()) {
 	    for (JobProgression progression : jPlayer.progression) {
 		Job job = Jobs.getJob(progression.getJob().getName());
 		if (job != null)

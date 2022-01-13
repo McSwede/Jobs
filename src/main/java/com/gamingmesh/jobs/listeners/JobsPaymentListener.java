@@ -24,6 +24,7 @@ import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 
+import com.bgsoftware.wildstacker.api.enums.StackSplit;
 import org.bukkit.Bukkit;
 import org.bukkit.GameMode;
 import org.bukkit.Location;
@@ -125,7 +126,6 @@ import net.Zrips.CMILib.Container.CMILocation;
 import net.Zrips.CMILib.Entities.CMIEntityType;
 import net.Zrips.CMILib.Items.CMIItemStack;
 import net.Zrips.CMILib.Items.CMIMaterial;
-import net.Zrips.CMILib.Logs.CMIDebug;
 import net.Zrips.CMILib.Version.Version;
 
 public final class JobsPaymentListener implements Listener {
@@ -336,12 +336,10 @@ public final class JobsPaymentListener implements Listener {
 	    return;
 
 	if (Jobs.getGCManager().payForStackedEntities) {
-	    if (JobsHook.WildStacker.isEnabled() && HookManager.getWildStackerHandler().isStackedEntity(sheep)) {
-		for (com.bgsoftware.wildstacker.api.objects.StackedEntity stacked : HookManager.getWildStackerHandler().getStackedEntities()) {
-		    if (stacked.getType() == sheep.getType()) {
-			Jobs.action(jDamager, new CustomKillInfo(((Sheep) stacked.getLivingEntity()).getColor().name(), ActionType.SHEAR));
-		    }
-		}
+	    if (JobsHook.WildStacker.isEnabled() && !StackSplit.SHEEP_SHEAR.isEnabled()) {
+			for(int i = 0; i < HookManager.getWildStackerHandler().getEntityAmount(sheep) - 1; i++) {
+				Jobs.action(jDamager, new CustomKillInfo(sheep.getColor().name(), ActionType.SHEAR));
+			}
 	    } else if (JobsHook.StackMob.isEnabled() && HookManager.getStackMobHandler().isStacked(sheep)) {
 		for (uk.antiperson.stackmob.entity.StackEntity stacked : HookManager.getStackMobHandler().getStackEntities()) {
 		    if (stacked.getEntity().getType() == sheep.getType()) {
@@ -588,11 +586,9 @@ public final class JobsPaymentListener implements Listener {
 	    return;
 
 	if (Jobs.getGCManager().payForStackedEntities) {
-	    if (JobsHook.WildStacker.isEnabled() && HookManager.getWildStackerHandler().isStackedEntity(animal)) {
-		for (com.bgsoftware.wildstacker.api.objects.StackedEntity stacked : HookManager.getWildStackerHandler().getStackedEntities()) {
-		    if (stacked.getType() == animal.getType()) {
-			Jobs.action(jDamager, new EntityActionInfo(stacked.getLivingEntity(), ActionType.TAME));
-		    }
+	    if (JobsHook.WildStacker.isEnabled()) {
+		for (int i = 0; i < HookManager.getWildStackerHandler().getEntityAmount(animal) - 1; i++) {
+			Jobs.action(jDamager, new EntityActionInfo(animal, ActionType.TAME));
 		}
 	    } else if (JobsHook.StackMob.isEnabled() && HookManager.getStackMobHandler().isStacked(animal)) {
 		for (uk.antiperson.stackmob.entity.StackEntity stacked : HookManager.getStackMobHandler().getStackEntities()) {
@@ -819,11 +815,11 @@ public final class JobsPaymentListener implements Listener {
 	}, 1);
     }
 
-    private boolean hasItems(ItemStack stack) {
+    private static boolean hasItems(ItemStack stack) {
 	return stack != null && stack.getAmount() > 0;
     }
 
-    private boolean hasSameItem(ItemStack a, ItemStack b) {
+    private static boolean hasSameItem(ItemStack a, ItemStack b) {
 	if (a == null)
 	    return b == null;
 	else if (b == null)
@@ -876,7 +872,7 @@ public final class JobsPaymentListener implements Listener {
 		return true;
 	} catch (Throwable e) {
 	}
-	
+
 	if (itemToCheck.getEnchantments().size() != result.getEnchantments().size())
 	    return true;
 
@@ -1332,11 +1328,9 @@ public final class JobsPaymentListener implements Listener {
 	    return;
 
 	if (Jobs.getGCManager().payForStackedEntities) {
-	    if (JobsHook.WildStacker.isEnabled() && HookManager.getWildStackerHandler().isStackedEntity(lVictim)) {
-		for (com.bgsoftware.wildstacker.api.objects.StackedEntity stacked : HookManager.getWildStackerHandler().getStackedEntities()) {
-		    if (stacked.getType() == lVictim.getType()) {
-			Jobs.action(jDamager, new EntityActionInfo(stacked.getLivingEntity(), ActionType.KILL), e.getDamager(), stacked.getLivingEntity());
-		    }
+	    if (JobsHook.WildStacker.isEnabled()) {
+		for (int i = 0; i < HookManager.getWildStackerHandler().getEntityAmount(lVictim) - 1; i++) {
+			Jobs.action(jDamager, new EntityActionInfo(lVictim, ActionType.KILL), e.getDamager(), lVictim);
 		}
 	    } else if (JobsHook.StackMob.isEnabled() && HookManager.getStackMobHandler().isStacked(lVictim)) {
 		for (uk.antiperson.stackmob.entity.StackEntity stacked : HookManager.getStackMobHandler().getStackEntities()) {
@@ -1824,7 +1818,6 @@ public final class JobsPaymentListener implements Listener {
     public static boolean payIfCreative(Player player) {
 	if (Jobs.getGCManager().payInCreative() && player.getGameMode() == GameMode.CREATIVE)
 	    return true;
-
 	if (player.getGameMode() == GameMode.CREATIVE && Jobs.getPermissionManager().hasPermission(Jobs.getPlayerManager().getJobsPlayer(player), "jobs.paycreative"))
 	    return true;
 

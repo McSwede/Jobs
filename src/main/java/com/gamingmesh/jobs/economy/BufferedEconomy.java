@@ -240,7 +240,7 @@ public class BufferedEconomy {
      * @param payment {@link BufferedPayment}
      */
     public void showPayment(BufferedPayment payment) {
-	if (Jobs.getGCManager().aBarSilentMode || payment.getOfflinePlayer() == null || !payment.getOfflinePlayer().isOnline()
+	if (payment.getOfflinePlayer() == null || !payment.getOfflinePlayer().isOnline()
 	    || !payment.containsPayment())
 	    return;
 

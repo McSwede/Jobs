@@ -30,7 +30,6 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.WeakHashMap;
-import java.util.concurrent.CompletableFuture;
 import java.util.logging.Logger;
 
 import org.bukkit.Bukkit;
@@ -116,7 +115,6 @@ import net.Zrips.CMILib.ActionBar.CMIActionBar;
 import net.Zrips.CMILib.Colors.CMIChatColor;
 import net.Zrips.CMILib.Container.PageInfo;
 import net.Zrips.CMILib.Items.CMIMaterial;
-import net.Zrips.CMILib.Logs.CMIDebug;
 import net.Zrips.CMILib.Messages.CMIMessages;
 import net.Zrips.CMILib.RawMessages.RawMessage;
 import net.Zrips.CMILib.Version.Version;
@@ -173,8 +171,6 @@ public final class Jobs extends JavaPlugin {
 
     protected static VersionChecker versionCheckManager;
     protected static SelectionManager smanager;
-
-    private static PointsData pointsDatabase;
 
     public Complement getComplement() {
 	return complement;
@@ -289,21 +285,8 @@ public final class Jobs extends JavaPlugin {
 
     public static JobsManager getDBManager() {
 	if (dbManager == null)
-	    dbManager = new JobsManager(instance);
+	    dbManager = new JobsManager(getInstance());
 	return dbManager;
-    }
-
-    /**
-     * Gets the PointsData
-     * @deprecated Use {@link JobsPlayer#getPointsData()}
-     * @return {@link PointsData}
-     */
-    @Deprecated
-    public static PointsData getPointsData() {
-	if (pointsDatabase == null)
-	    pointsDatabase = new PointsData();
-
-	return pointsDatabase;
     }
 
     public static ShopManager getShopManager() {
@@ -330,7 +313,7 @@ public final class Jobs extends JavaPlugin {
      */
     public static PlayerManager getPlayerManager() {
 	if (pManager == null)
-	    pManager = new PlayerManager(instance);
+	    pManager = new PlayerManager(getInstance());
 	return pManager;
     }
 
@@ -371,7 +354,7 @@ public final class Jobs extends JavaPlugin {
      */
     public static ScheduleManager getScheduleManager() {
 	if (scheduleManager == null) {
-	    scheduleManager = new ScheduleManager(instance);
+	    scheduleManager = new ScheduleManager(getInstance());
 	}
 
 	return scheduleManager;
@@ -393,7 +376,7 @@ public final class Jobs extends JavaPlugin {
 
     public static JobsCommands getCommandManager() {
 	if (cManager == null) {
-	    cManager = new JobsCommands(instance);
+	    cManager = new JobsCommands(getInstance());
 	}
 	return cManager;
     }
@@ -404,17 +387,11 @@ public final class Jobs extends JavaPlugin {
 	return exploreManager;
     }
 
-    // TODO Get rid of this entirely from project
-    // There are better implementations than this
-    protected static Jobs instance;
-
     /**
-     * This shouldn't be used.
      * @return returns this class object instance
      */
-    @Deprecated
     public static Jobs getInstance() {
-	return instance;
+	return JavaPlugin.getPlugin(Jobs.class);
     }
 
     /**
@@ -423,7 +400,7 @@ public final class Jobs extends JavaPlugin {
      */
     public static SignUtil getSignUtil() {
 	if (signManager == null) {
-	    signManager = new SignUtil(instance);
+	    signManager = new SignUtil(getInstance());
 	}
 
 	return signManager;
@@ -452,11 +429,11 @@ public final class Jobs extends JavaPlugin {
      * @return the plugin logger
      */
     public static Logger getPluginLogger() {
-	return instance.getLogger();
+	return getInstance().getLogger();
     }
 
     public static File getFolder() {
-	File folder = instance.getDataFolder();
+	File folder = getInstance().getDataFolder();
 	folder.mkdirs();
 	return folder;
     }
@@ -544,7 +521,7 @@ public final class Jobs extends JavaPlugin {
 	return placeholderAPIEnabled;
     }
 
-    private void startup() {
+    private static void startup() {
 	reload(true);
 
 	// This goes in sync to avoid issues while loading data
@@ -686,7 +663,7 @@ public final class Jobs extends JavaPlugin {
      */
     public static PermissionHandler getPermissionHandler() {
 	if (permissionHandler == null)
-	    permissionHandler = new PermissionHandler(instance);
+	    permissionHandler = new PermissionHandler(getInstance());
 	return permissionHandler;
     }
 
@@ -701,7 +678,7 @@ public final class Jobs extends JavaPlugin {
      * @param eco - the economy handler
      */
     public static void setEconomy(Economy eco) {
-	economy = new BufferedEconomy(instance, eco);
+	economy = new BufferedEconomy(getInstance(), eco);
     }
 
     /**
@@ -718,7 +695,7 @@ public final class Jobs extends JavaPlugin {
      */
     public static VersionChecker getVersionCheckManager() {
 	if (versionCheckManager == null)
-	    versionCheckManager = new VersionChecker(instance);
+	    versionCheckManager = new VersionChecker(getInstance());
 
 	return versionCheckManager;
     }
@@ -729,7 +706,6 @@ public final class Jobs extends JavaPlugin {
     @Override
     public void onEnable() {
 	CMIMessages.consoleMessage(prefix);
-	instance = this;
 
 	try {
 	    Class.forName("net.kyori.adventure.text.Component");
@@ -759,7 +735,7 @@ public final class Jobs extends JavaPlugin {
 
 	    // register the listeners
 	    if (Version.isCurrentEqualOrHigher(Version.v1_9_R1)) {
-		getServer().getPluginManager().registerEvents(new com.gamingmesh.jobs.listeners.Listener1_9(), instance);
+		getServer().getPluginManager().registerEvents(new com.gamingmesh.jobs.listeners.Listener1_9(), getInstance());
 	    }
 
 	    getServer().getPluginManager().registerEvents(new JobsListener(this), this);
@@ -807,22 +783,22 @@ public final class Jobs extends JavaPlugin {
     public static void reload(boolean startup) {
 	// unregister all registered listeners by this plugin and register again
 	if (!startup) {
-	    org.bukkit.plugin.PluginManager pm = instance.getServer().getPluginManager();
+	    org.bukkit.plugin.PluginManager pm = getInstance().getServer().getPluginManager();
 
-	    HandlerList.unregisterAll(instance);
+	    HandlerList.unregisterAll(getInstance());
 
 	    if (Version.isCurrentEqualOrHigher(Version.v1_9_R1)) {
-		pm.registerEvents(new com.gamingmesh.jobs.listeners.Listener1_9(), instance);
+		pm.registerEvents(new com.gamingmesh.jobs.listeners.Listener1_9(), getInstance());
 	    }
 
-	    pm.registerEvents(new JobsListener(instance), instance);
-	    pm.registerEvents(new JobsPaymentListener(instance), instance);
+	    pm.registerEvents(new JobsListener(getInstance()), getInstance());
+	    pm.registerEvents(new JobsPaymentListener(getInstance()), getInstance());
 	    if (Version.isCurrentEqualOrHigher(Version.v1_14_R1)) {
-		pm.registerEvents(new JobsPayment14Listener(), instance);
+		pm.registerEvents(new JobsPayment14Listener(), getInstance());
 	    }
 
 	    if (getGCManager().useBlockProtection) {
-		pm.registerEvents(new PistonProtectionListener(), instance);
+		pm.registerEvents(new PistonProtectionListener(), getInstance());
 	    }
 
 	    if (HookManager.getMcMMOManager().CheckmcMMO()) {
@@ -851,15 +827,15 @@ public final class Jobs extends JavaPlugin {
 	getDBManager().getDB().loadAllJobsNames();
 
 	if (Version.isCurrentEqualOrLower(Version.v1_13_R1)) {
-	    instance.getBlockOwnerShip(CMIMaterial.LEGACY_BREWING_STAND).ifPresent(BlockOwnerShip::load);
-	    instance.getBlockOwnerShip(CMIMaterial.LEGACY_BURNING_FURNACE).ifPresent(BlockOwnerShip::load);
+	    getInstance().getBlockOwnerShip(CMIMaterial.LEGACY_BREWING_STAND).ifPresent(BlockOwnerShip::load);
+	    getInstance().getBlockOwnerShip(CMIMaterial.LEGACY_BURNING_FURNACE).ifPresent(BlockOwnerShip::load);
 	} else {
-	    instance.getBlockOwnerShip(CMIMaterial.FURNACE).ifPresent(BlockOwnerShip::load);
-	    instance.getBlockOwnerShip(CMIMaterial.BREWING_STAND).ifPresent(BlockOwnerShip::load);
+	    getInstance().getBlockOwnerShip(CMIMaterial.FURNACE).ifPresent(BlockOwnerShip::load);
+	    getInstance().getBlockOwnerShip(CMIMaterial.BREWING_STAND).ifPresent(BlockOwnerShip::load);
 	}
 	if (Version.isCurrentEqualOrHigher(Version.v1_14_R1)) {
-	    instance.getBlockOwnerShip(CMIMaterial.BLAST_FURNACE).ifPresent(BlockOwnerShip::load);
-	    instance.getBlockOwnerShip(CMIMaterial.SMOKER).ifPresent(BlockOwnerShip::load);
+	    getInstance().getBlockOwnerShip(CMIMaterial.BLAST_FURNACE).ifPresent(BlockOwnerShip::load);
+	    getInstance().getBlockOwnerShip(CMIMaterial.SMOKER).ifPresent(BlockOwnerShip::load);
 	}
 
 	ToggleBarHandling.load();
