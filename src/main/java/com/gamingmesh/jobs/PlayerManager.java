@@ -66,6 +66,7 @@ import net.Zrips.CMILib.Version.Version;
 public class PlayerManager {
 
     private final ConcurrentMap<UUID, JobsPlayer> playersUUIDCache = new ConcurrentHashMap<>();
+    private final ConcurrentMap<String, JobsPlayer> playersNameCache = new ConcurrentHashMap<>();
     private final ConcurrentMap<UUID, JobsPlayer> playersUUID = new ConcurrentHashMap<>();
 
     private final String mobSpawnerMetadata = "jobsMobSpawner";
@@ -98,6 +99,7 @@ public class PlayerManager {
 
     public void clearCache() {
 	playersUUIDCache.clear();
+	playersNameCache.clear();
 	playersUUID.clear();
     }
 
@@ -121,6 +123,8 @@ public class PlayerManager {
 
     public void addPlayerToCache(JobsPlayer jPlayer) {
 	playersUUIDCache.putIfAbsent(jPlayer.playerUUID, jPlayer);
+	if (jPlayer.getName() != null)
+	    playersNameCache.putIfAbsent(jPlayer.getName().toLowerCase(), jPlayer);
     }
 
     public void addPlayer(JobsPlayer jPlayer) {
@@ -179,7 +183,16 @@ public class PlayerManager {
      * @return {@link PlayerInfo}
      */
     public PlayerInfo getPlayerInfo(String name) {
+	if (Version.isCurrentEqualOrLower(Version.v1_11_R1)) {
+	    JobsPlayer jPlayer = playersNameCache.get(name.toLowerCase());
+	    if (jPlayer == null)
+		return null;
+	    return playerUUIDMap.get(jPlayer.getUniqueId());
+	}
+
 	UUID playerUUID = Bukkit.getPlayerUniqueId(name);
+	if (playerUUID == null)
+	    return null;
 	return playerUUIDMap.get(playerUUID);
     }
 
@@ -363,7 +376,13 @@ public class PlayerManager {
      * @return {@link JobsPlayer} the player job info of the player
      */
     public JobsPlayer getJobsPlayer(String playerName) {
+	if (Version.isCurrentEqualOrLower(Version.v1_11_R1)) {
+	    return playersNameCache.get(playerName.toLowerCase());
+	}
+
 	UUID playerUUID = Bukkit.getPlayerUniqueId(playerName);
+	if (playerUUID == null)
+	    return null;
 	JobsPlayer jPlayer = playersUUID.get(playerUUID);
 	return jPlayer != null ? jPlayer : playersUUIDCache.get(playerUUID);
     }
@@ -544,7 +563,25 @@ public class PlayerManager {
      * @param levels - number of levels to promote
      */
     public void promoteJob(JobsPlayer jPlayer, Job job, int levels) {
+	promoteJob(jPlayer, job, levels, false);
+    }
+
+    /**
+     * Promotes player in their job
+     *
+     * @param jPlayer {@link JobsPlayer}
+     * @param job - the job
+     * @param levels - number of levels to promote
+     */
+    public void promoteJob(JobsPlayer jPlayer, Job job, int levels, boolean performCommands) {
+
+	if (performCommands) {
+	    JobProgression prog = jPlayer.getJobProgression(job);
+	    performCommandOnLevelUp(jPlayer, prog, prog.getLevel(), prog.getLevel() + levels);
+	}
+
 	jPlayer.promoteJob(job, levels);
+
 	jPlayer.save();
 
 	Jobs.getSignUtil().updateAllSign(job);
@@ -628,7 +665,7 @@ public class PlayerManager {
 	if (prog.getLevel() < oldLevel) {
 	    String message = Jobs.getLanguage().getMessage("message.leveldown.message");
 
-	    message = message.replace("%jobname%", job.getJobDisplayName());
+	    message = message.replace("%jobname%", job.getDisplayName());
 	    message = message.replace("%playername%", player != null ? plugin.getComplement().getDisplayName(player) : jPlayer.getName());
 	    message = message.replace("%joblevel%", prog.getLevelFormatted());
 	    message = message.replace("%lostLevel%", Integer.toString(oldLevel));
@@ -731,7 +768,7 @@ public class PlayerManager {
 	String message = Jobs.getLanguage().getMessage("message.levelup." + (Jobs.getGCManager().isBroadcastingLevelups()
 	    ? "broadcast" : "nobroadcast"));
 
-	message = message.replace("%jobname%", job.getJobDisplayName());
+	message = message.replace("%jobname%", job.getDisplayName());
 
 	if (levelUpEvent.getOldTitle() != null)
 	    message = message.replace("%titlename%", levelUpEvent.getOldTitle()
@@ -772,7 +809,7 @@ public class PlayerManager {
 	    message = message.replace("%playername%", player != null ? plugin.getComplement().getDisplayName(player) : jPlayer.getName());
 	    message = message.replace("%titlename%", levelUpEvent.getNewTitle()
 		.getChatColor().toString() + levelUpEvent.getNewTitle().getName());
-	    message = message.replace("%jobname%", job.getJobDisplayName());
+	    message = message.replace("%jobname%", job.getDisplayName());
 
 	    if (Jobs.getGCManager().isBroadcastingSkillups() || Jobs.getGCManager().TitleChangeActionBar || Jobs.getGCManager().TitleChangeChat) {
 		for (String line : message.split("\n")) {
@@ -831,22 +868,39 @@ public class PlayerManager {
      */
     public void performCommandOnLevelUp(JobsPlayer jPlayer, JobProgression prog, int oldLevel) {
 	int newLevel = oldLevel + 1;
-	Player player = plugin.getServer().getPlayer(jPlayer.getUniqueId());
+	List<String> commands = getCommandsOnLevelUp(jPlayer, prog, newLevel);
+	commands.stream().forEach(cmd -> plugin.getServer().dispatchCommand(plugin.getServer().getConsoleSender(), cmd));
+    }
 
+    private static List<String> getCommandsOnLevelUp(JobsPlayer jPlayer, JobProgression prog, int newLevel) {
+	List<String> commands = new ArrayList<String>();
 	for (JobCommands command : prog.getJob().getCommands()) {
-	    if ((command.getLevelFrom() == 0 && command.getLevelUntil() == 0) || (newLevel >= command.getLevelFrom()
-		&& newLevel <= command.getLevelUntil())) {
+	    if ((command.getLevelFrom() == 0 && command.getLevelUntil() == 0) || (newLevel >= command.getLevelFrom() && newLevel <= command.getLevelUntil())) {
 		for (String commandString : new ArrayList<>(command.getCommands())) {
-		    if (player != null)
-			commandString = commandString.replace("[player]", player.getName());
-
-		    commandString = commandString.replace("[oldlevel]", Integer.toString(oldLevel));
-		    commandString = commandString.replace("[newlevel]", Integer.toString(newLevel));
-		    commandString = commandString.replace("[jobname]", prog.getJob().getName());
-
-		    plugin.getServer().dispatchCommand(plugin.getServer().getConsoleSender(), commandString);
+		    commandString = commandString.replace("[player]", jPlayer.getName())
+			.replace("[oldlevel]", Integer.toString(newLevel - 1))
+			.replace("[newlevel]", Integer.toString(newLevel))
+			.replace("[jobname]", prog.getJob().getName());
+		    commands.add(commandString);
 		}
 	    }
+	}
+	return commands;
+    }
+
+    /**
+     * Performs command for each level
+     *
+     * @param jPlayer {@link JobsPlayer}
+     * @param job {@link Job}
+     * @param oldLevel
+     */
+    public void performCommandOnLevelUp(JobsPlayer jPlayer, JobProgression prog, int oldLevel, int untilLevel) {
+	if (oldLevel > untilLevel)
+	    return;
+	for (int newLevel = oldLevel + 1; newLevel <= untilLevel; newLevel++) {
+	    List<String> commands = getCommandsOnLevelUp(jPlayer, prog, newLevel);
+	    commands.stream().forEach(cmd -> plugin.getServer().dispatchCommand(plugin.getServer().getConsoleSender(), cmd));
 	}
     }
 
