@@ -18,13 +18,14 @@
 
 package com.gamingmesh.jobs.listeners;
 
+import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 
-import com.bgsoftware.wildstacker.api.enums.StackSplit;
 import org.bukkit.Bukkit;
 import org.bukkit.GameMode;
 import org.bukkit.Location;
@@ -88,6 +89,7 @@ import org.bukkit.metadata.FixedMetadataValue;
 import org.bukkit.metadata.MetadataValue;
 import org.bukkit.permissions.PermissionAttachmentInfo;
 
+import com.bgsoftware.wildstacker.api.enums.StackSplit;
 import com.gamingmesh.jobs.ItemBoostManager;
 import com.gamingmesh.jobs.Jobs;
 import com.gamingmesh.jobs.CMILib.CMIEnchantment;
@@ -337,9 +339,9 @@ public final class JobsPaymentListener implements Listener {
 
 	if (Jobs.getGCManager().payForStackedEntities) {
 	    if (JobsHook.WildStacker.isEnabled() && !StackSplit.SHEEP_SHEAR.isEnabled()) {
-			for(int i = 0; i < HookManager.getWildStackerHandler().getEntityAmount(sheep) - 1; i++) {
-				Jobs.action(jDamager, new CustomKillInfo(sheep.getColor().name(), ActionType.SHEAR));
-			}
+		for (int i = 0; i < HookManager.getWildStackerHandler().getEntityAmount(sheep) - 1; i++) {
+		    Jobs.action(jDamager, new CustomKillInfo(sheep.getColor().name(), ActionType.SHEAR));
+		}
 	    } else if (JobsHook.StackMob.isEnabled() && HookManager.getStackMobHandler().isStacked(sheep)) {
 		for (uk.antiperson.stackmob.entity.StackEntity stacked : HookManager.getStackMobHandler().getStackEntities()) {
 		    if (stacked.getEntity().getType() == sheep.getType()) {
@@ -588,7 +590,7 @@ public final class JobsPaymentListener implements Listener {
 	if (Jobs.getGCManager().payForStackedEntities) {
 	    if (JobsHook.WildStacker.isEnabled()) {
 		for (int i = 0; i < HookManager.getWildStackerHandler().getEntityAmount(animal) - 1; i++) {
-			Jobs.action(jDamager, new EntityActionInfo(animal, ActionType.TAME));
+		    Jobs.action(jDamager, new EntityActionInfo(animal, ActionType.TAME));
 		}
 	    } else if (JobsHook.StackMob.isEnabled() && HookManager.getStackMobHandler().isStacked(animal)) {
 		for (uk.antiperson.stackmob.entity.StackEntity stacked : HookManager.getStackMobHandler().getStackEntities()) {
@@ -990,7 +992,7 @@ public final class JobsPaymentListener implements Listener {
 	ItemStack secondSlotItem = inv.getItem(1);
 
 	if (Jobs.getGCManager().PayForEnchantingOnAnvil && secondSlotItem != null && secondSlotItem.getType() == Material.ENCHANTED_BOOK) {
-	    Map<Enchantment, Integer> newEnchantments = Util.mapUnique(resultStack.getEnchantments(), firstSlot.getEnchantments());
+	    Map<Enchantment, Integer> newEnchantments = mapUnique(resultStack.getEnchantments(), firstSlot.getEnchantments());
 
 	    for (Map.Entry<Enchantment, Integer> oneEnchant : newEnchantments.entrySet()) {
 		Enchantment enchant = oneEnchant.getKey();
@@ -998,20 +1000,30 @@ public final class JobsPaymentListener implements Listener {
 		    continue;
 
 		String enchantName = getEnchantName(enchant);
-		if (enchantName != null)
+		if (enchantName != null) {
 		    Jobs.action(jPlayer, new EnchantActionInfo(enchantName, oneEnchant.getValue(), ActionType.ENCHANT));
+		}
 	    }
 	} else if (secondSlotItem == null || secondSlotItem.getType() != Material.ENCHANTED_BOOK) { // Enchanted books does not have durability
-
 	    if (!changed(firstSlot, secondSlotItem, resultStack))
 		return;
-
 	    Jobs.action(jPlayer, new ItemActionInfo(resultStack, ActionType.REPAIR));
 	}
     }
 
+    private static Map<Enchantment, Integer> mapUnique(Map<Enchantment, Integer> map1, Map<Enchantment, Integer> map2) {
+	Map<Enchantment, Integer> map = new HashMap<Enchantment, Integer>();
+	for (Entry<Enchantment, Integer> entry : map1.entrySet()) {
+	    if (map2.get(entry.getKey()) != null && map2.get(entry.getKey()) == entry.getValue())
+		continue;
+	    map.put(entry.getKey(), entry.getValue());
+	}
+	return map;
+    }
+
     @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
     public void onEnchantItem(EnchantItemEvent event) {
+
 	if (!Jobs.getGCManager().canPerformActionInWorld(event.getEnchanter().getWorld()))
 	    return;
 
@@ -1330,7 +1342,7 @@ public final class JobsPaymentListener implements Listener {
 	if (Jobs.getGCManager().payForStackedEntities) {
 	    if (JobsHook.WildStacker.isEnabled()) {
 		for (int i = 0; i < HookManager.getWildStackerHandler().getEntityAmount(lVictim) - 1; i++) {
-			Jobs.action(jDamager, new EntityActionInfo(lVictim, ActionType.KILL), e.getDamager(), lVictim);
+		    Jobs.action(jDamager, new EntityActionInfo(lVictim, ActionType.KILL), e.getDamager(), lVictim);
 		}
 	    } else if (JobsHook.StackMob.isEnabled() && HookManager.getStackMobHandler().isStacked(lVictim)) {
 		for (uk.antiperson.stackmob.entity.StackEntity stacked : HookManager.getStackMobHandler().getStackEntities()) {
@@ -1762,6 +1774,7 @@ public final class JobsPaymentListener implements Listener {
 
     @EventHandler(ignoreCancelled = true)
     public void onExplore(JobsChunkChangeEvent event) {
+
 	if (!Jobs.getExplore().isExploreEnabled())
 	    return;
 

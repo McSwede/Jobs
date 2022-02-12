@@ -382,6 +382,12 @@ public class JobsListener implements Listener {
 
     @EventHandler(priority = EventPriority.LOWEST, ignoreCancelled = true)
     public void onLimitedItemInteract(PlayerInteractEvent event) {
+
+	if(!Jobs.hasLimitedItems())
+	{
+		return;
+	}
+
 	Player player = event.getPlayer();
 	ItemStack iih = CMIItemStack.getItemInMainHand(player);
 	if (iih.getType() == Material.AIR)
@@ -460,8 +466,9 @@ public class JobsListener implements Listener {
 
 	Chunk from = event.getFrom().getChunk();
 	Chunk to = event.getTo().getChunk();
-	if (from != to)
+	if (from != to) {
 	    plugin.getServer().getPluginManager().callEvent(new JobsChunkChangeEvent(event.getPlayer(), from, to));
+	}
     }
 
     @EventHandler(ignoreCancelled = true)
