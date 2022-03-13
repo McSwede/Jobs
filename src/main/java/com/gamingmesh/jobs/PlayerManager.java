@@ -59,6 +59,7 @@ import com.gamingmesh.jobs.stuff.Util;
 
 import net.Zrips.CMILib.ActionBar.CMIActionBar;
 import net.Zrips.CMILib.Items.CMIItemStack;
+import net.Zrips.CMILib.Logs.CMIDebug;
 import net.Zrips.CMILib.Messages.CMIMessages;
 import net.Zrips.CMILib.NBT.CMINBT;
 import net.Zrips.CMILib.Version.Version;
@@ -190,9 +191,16 @@ public class PlayerManager {
 	    return playerUUIDMap.get(jPlayer.getUniqueId());
 	}
 
+	JobsPlayer jPlayer = playersNameCache.get(name.toLowerCase());
+
+	if (jPlayer != null) {
+	    return playerUUIDMap.get(jPlayer.getUniqueId());
+	}
+
 	UUID playerUUID = Bukkit.getPlayerUniqueId(name);
 	if (playerUUID == null)
 	    return null;
+
 	return playerUUIDMap.get(playerUUID);
     }
 
@@ -270,7 +278,7 @@ public class PlayerManager {
 	    return;
 
 	jPlayer.onDisconnect();
-	if (Jobs.getGCManager().saveOnDisconnect()) {
+	if (Jobs.getGCManager().saveOnDisconnect() || Jobs.getGCManager().MultiServerCompatability()) {
 	    jPlayer.setSaved(false);
 	    jPlayer.save();
 	}
@@ -380,10 +388,22 @@ public class PlayerManager {
 	    return playersNameCache.get(playerName.toLowerCase());
 	}
 
+	JobsPlayer jPlayer = playersNameCache.get(playerName.toLowerCase());
+
+	if (jPlayer != null) {
+	    return jPlayer;
+	}
+
 	UUID playerUUID = Bukkit.getPlayerUniqueId(playerName);
+
 	if (playerUUID == null)
 	    return null;
-	JobsPlayer jPlayer = playersUUID.get(playerUUID);
+	jPlayer = playersUUID.get(playerUUID);
+
+	if (jPlayer != null) {
+	    playersNameCache.put(playerName.toLowerCase(), jPlayer);
+	}
+
 	return jPlayer != null ? jPlayer : playersUUIDCache.get(playerUUID);
     }
 
@@ -682,7 +702,7 @@ public class PlayerManager {
 
 	    jPlayer.reloadHonorific();
 	    Jobs.getPermissionHandler().recalculatePermissions(jPlayer);
-	    performCommandOnLevelUp(jPlayer, prog, oldLevel);
+	    performCommandOnLevelUp(jPlayer, prog, oldLevel, prog.getLevel());
 	    Jobs.getSignUtil().updateAllSign(job);
 	    return;
 	}
@@ -828,7 +848,7 @@ public class PlayerManager {
 
 	jPlayer.reloadHonorific();
 	Jobs.getPermissionHandler().recalculatePermissions(jPlayer);
-	performCommandOnLevelUp(jPlayer, prog, oldLevel);
+	performCommandOnLevelUp(jPlayer, prog, oldLevel, prog.getLevel());
 	Jobs.getSignUtil().updateAllSign(job);
 
 	if (player != null && !job.getMaxLevelCommands().isEmpty() && prog.getLevel() == jPlayer.getMaxJobLevelAllowed(prog.getJob())) {
@@ -878,6 +898,7 @@ public class PlayerManager {
 	    if ((command.getLevelFrom() == 0 && command.getLevelUntil() == 0) || (newLevel >= command.getLevelFrom() && newLevel <= command.getLevelUntil())) {
 		for (String commandString : new ArrayList<>(command.getCommands())) {
 		    commandString = commandString.replace("[player]", jPlayer.getName())
+			.replace("[playerName]", jPlayer.getName())
 			.replace("[oldlevel]", Integer.toString(newLevel - 1))
 			.replace("[newlevel]", Integer.toString(newLevel))
 			.replace("[jobname]", prog.getJob().getName());

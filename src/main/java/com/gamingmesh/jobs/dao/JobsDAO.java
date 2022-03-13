@@ -42,6 +42,7 @@ import com.gamingmesh.jobs.economy.PaymentData;
 import com.gamingmesh.jobs.stuff.TimeManage;
 import com.gamingmesh.jobs.stuff.Util;
 
+import net.Zrips.CMILib.Logs.CMIDebug;
 import net.Zrips.CMILib.Messages.CMIMessages;
 
 public abstract class JobsDAO {
@@ -1328,7 +1329,7 @@ public abstract class JobsDAO {
      * @param userName - the player being searched for
      * @return list of all of the names of the jobs the players are part of.
      */
-    public synchronized List<JobsDAOData> getAllJobsOffline(String userName) {
+    public synchronized List<JobsDAOData> getAllJobsOffline2(String userName) {
 	List<JobsDAOData> jobs = new ArrayList<>();
 
 	PlayerInfo info = Jobs.getPlayerManager().getPlayerInfo(userName);
@@ -1748,8 +1749,8 @@ public abstract class JobsDAO {
 	try {
 
 	    prest = conn.prepareStatement("SELECT " + JobsTableFields.userid.getCollumn()
-		+ ", COUNT(*) AS amount, sum(" + JobsTableFields.level.getCollumn() + ") AS totallvl FROM `" + getJobsTableName()
-		+ "` GROUP BY userid ORDER BY totallvl DESC LIMIT " + start + "," + jobsTopAmount + ";");
+		+ ", COUNT(*) AS amount, sum(" + JobsTableFields.level.getCollumn() + ") AS totallvl, sum(" + JobsTableFields.experience.getCollumn() + ") AS totalexp FROM `" + getJobsTableName()
+		+ "` GROUP BY userid ORDER BY totallvl DESC, totalexp DESC LIMIT " + start + "," + jobsTopAmount + ";");
 	    res = prest.executeQuery();
 
 	    while (res.next()) {
@@ -1757,7 +1758,7 @@ public abstract class JobsDAO {
 		if (info == null)
 		    continue;
 
-		names.add(new TopList(info, res.getInt("totallvl"), 0));
+		names.add(new TopList(info, res.getInt("totallvl"),  res.getInt("totalexp")));
 
 		if (names.size() >= jobsTopAmount)
 		    break;
@@ -2457,7 +2458,7 @@ public abstract class JobsDAO {
     }
 
     public void insertExplore() {
-	if (!Jobs.getExplore().isExploreEnabled())
+	if (!Jobs.getExploreManager().isExploreEnabled())
 	    return;
 
 	JobsConnection conn = getConnection();
@@ -2475,7 +2476,7 @@ public abstract class JobsDAO {
 	    conn.setAutoCommit(false);
 	    int i = 0;
 
-	    Map<String, Map<String, ExploreRegion>> temp = new HashMap<>(Jobs.getExplore().getWorlds());
+	    Map<String, Map<String, ExploreRegion>> temp = new HashMap<>(Jobs.getExploreManager().getWorlds());
 
 	    for (Entry<String, Map<String, ExploreRegion>> worlds : temp.entrySet()) {
 		for (Entry<String, ExploreRegion> region : worlds.getValue().entrySet()) {
@@ -2516,7 +2517,7 @@ public abstract class JobsDAO {
     }
 
     public void updateExplore() {
-	if (!Jobs.getExplore().isExploreEnabled())
+	if (!Jobs.getExploreManager().isExploreEnabled())
 	    return;
 
 	JobsConnection conn = getConnection();
@@ -2529,7 +2530,7 @@ public abstract class JobsDAO {
 
 	    int i = 0;
 
-	    Map<String, Map<String, ExploreRegion>> temp = new HashMap<>(Jobs.getExplore().getWorlds());
+	    Map<String, Map<String, ExploreRegion>> temp = new HashMap<>(Jobs.getExploreManager().getWorlds());
 
 	    for (Entry<String, Map<String, ExploreRegion>> worlds : temp.entrySet()) {
 		for (Entry<String, ExploreRegion> region : worlds.getValue().entrySet()) {
@@ -2568,7 +2569,7 @@ public abstract class JobsDAO {
      * @param jobexplore - the information getting saved
      */
     public void loadExplore() {
-	if (!Jobs.getExplore().isExploreEnabled())
+	if (!Jobs.getExploreManager().isExploreEnabled())
 	    return;
 
 	JobsConnection conn = getConnection();
@@ -2581,13 +2582,14 @@ public abstract class JobsDAO {
 	    prest = conn.prepareStatement("SELECT * FROM `" + DBTables.ExploreDataTable.getTableName() + "`;");
 	    res = prest.executeQuery();
 	    Set<Integer> missingWorlds = new HashSet<>();
+
 	    while (res.next()) {
 		int worldId = res.getInt(ExploreDataTableFields.worldid.getCollumn());
 		JobsWorld jworld = Util.getJobsWorld(worldId);
 		if (jworld == null || jworld.getWorld() == null) {
 		    missingWorlds.add(worldId);
 		} else {
-		    Jobs.getExplore().load(res);
+		    Jobs.getExploreManager().load(res);
 		}
 	    }
 
@@ -2614,10 +2616,42 @@ public abstract class JobsDAO {
     }
 
     /**
-     * Save player-job information
-     * @param jobInfo - the information getting saved
-     * @return
+     * Delete player-explore information
+     * @param worldName - the world getting removed
      */
+    public boolean deleteExploredWorld(String worldName) {
+	if (!Jobs.getExploreManager().isExploreEnabled())
+	    return false;
+
+	JobsConnection conn = getConnection();
+	if (conn == null)
+	    return false;
+
+	JobsWorld target = Util.getJobsWorld(worldName);
+	if (null == target) {
+	    return false;
+	}
+
+	boolean res = true;
+	PreparedStatement prest = null;
+	try {
+	    prest = conn.prepareStatement("DELETE FROM `" + DBTables.ExploreDataTable.getTableName() + "` WHERE `" + ExploreDataTableFields.worldid.getCollumn() + "` = ?;");
+	    prest.setInt(1, target.getId());
+	    prest.execute();
+	} catch (Throwable e) {
+	    e.printStackTrace();
+	    res = false;
+	} finally {
+	    close(prest);
+	}
+	return res;
+    }
+
+    /**
+    * Save player-job information
+    * @param jobInfo - the information getting saved
+    * @return
+    */
     public List<Integer> getLognameList(int fromtime, int untiltime) {
 	JobsConnection conn = getConnection();
 	List<Integer> nameList = new ArrayList<>();

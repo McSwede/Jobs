@@ -59,6 +59,7 @@ import net.Zrips.CMILib.Equations.ParseError;
 import net.Zrips.CMILib.Equations.Parser;
 import net.Zrips.CMILib.FileHandler.ConfigReader;
 import net.Zrips.CMILib.Items.CMIMaterial;
+import net.Zrips.CMILib.Logs.CMIDebug;
 import net.Zrips.CMILib.Version.Version;
 
 public class ConfigManager {
@@ -806,8 +807,8 @@ public class ConfigManager {
 		return null;
 	    }
 
-	    Jobs.getExplore().setExploreEnabled();
-	    Jobs.getExplore().setPlayerAmount(amount);
+	    Jobs.getExploreManager().setExploreEnabled();
+	    Jobs.getExploreManager().setPlayerAmount(amount);
 	} else if (actionType == ActionType.CRAFT) {
 	    if (myKey.startsWith("!")) {
 		type = myKey.substring(1, myKey.length());

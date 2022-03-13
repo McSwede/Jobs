@@ -387,7 +387,12 @@ public final class Jobs extends JavaPlugin {
 	return cManager;
     }
 
+    @Deprecated
     public static ExploreManager getExplore() {
+	return getExploreManager();
+    }
+
+    public static ExploreManager getExploreManager() {
 	if (exploreManager == null)
 	    exploreManager = new ExploreManager();
 	return exploreManager;
@@ -776,7 +781,7 @@ public final class Jobs extends JavaPlugin {
 	    getServer().getScheduler().runTask(this, new HookEconomyTask(this));
 
 	    dao.loadBlockProtection();
-	    getExplore().load();
+	    getExploreManager().load();
 	    getCommandManager().fillCommands();
 	    getDBManager().getDB().triggerTableIdUpdate();
 

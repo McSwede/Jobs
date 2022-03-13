@@ -16,6 +16,7 @@ import org.bukkit.OfflinePlayer;
 import org.bukkit.entity.Player;
 
 import com.gamingmesh.jobs.Jobs;
+import com.gamingmesh.jobs.commands.JobsCommands;
 import com.gamingmesh.jobs.container.CurrencyType;
 import com.gamingmesh.jobs.container.Job;
 import com.gamingmesh.jobs.container.JobProgression;
@@ -27,6 +28,9 @@ import com.gamingmesh.jobs.container.TopList;
 import com.gamingmesh.jobs.container.blockOwnerShip.BlockOwnerShip;
 import com.gamingmesh.jobs.container.blockOwnerShip.BlockTypes;
 import com.gamingmesh.jobs.stuff.TimeManage;
+
+import net.Zrips.CMILib.Locale.LC;
+import net.Zrips.CMILib.Logs.CMIDebug;
 
 public class Placeholder {
 
@@ -74,6 +78,8 @@ public class Placeholder {
 	user_canjoin_$1("jname/number"),
 	user_jlevel_$1("jname/number"),
 	user_jexp_$1("jname/number"),
+	user_jmexp_$1("jname/number"),
+	user_jprogress_$1("jname/number"),
 	user_jexp_rounded_$1("jname/number"),
 	user_jmaxexp_$1("jname/number"),
 	user_jexpunf_$1("jname/number"),
@@ -223,7 +229,7 @@ public class Placeholder {
 			name = name.replace(one, "*");
 		    i++;
 		}
-
+	
 		return name;
 	    }
 	    return this.getName();
@@ -460,12 +466,10 @@ public class Placeholder {
 		String jobNames = "";
 		for (JobProgression prog : user.progression) {
 		    if (!jobNames.isEmpty()) {
-			jobNames += ", ";
+			jobNames += LC.info_ListSpliter.getLocale();
 		    }
-
 		    jobNames += prog.getJob().getName();
 		}
-
 		return jobNames;
 	    case user_quests:
 		String q = "";
@@ -474,14 +478,11 @@ public class Placeholder {
 		    if (quest == null || quest.isStopped()) {
 			continue;
 		    }
-
 		    if (!q.isEmpty()) {
-			q += ", ";
+			q += LC.info_ListSpliter.getLocale();
 		    }
-
 		    q += quest.getQuestName();
 		}
-
 		return q;
 	    default:
 		break;
@@ -507,6 +508,10 @@ public class Placeholder {
 		    return j == null ? "0" : j.getLevelFormatted();
 		case user_jexp_$1:
 		    return j == null ? "0" : format.format(j.getExperience());
+		case user_jmexp_$1:
+		    return j == null ? "0" : format.format(j.getMaxExperience() - j.getExperience());
+		case user_jprogress_$1:
+		    return j == null ? "" : Jobs.getCommandManager().jobProgressMessage(j.getMaxExperience(), j.getExperience());
 		case user_jexp_rounded_$1:
 		    return j == null ? "0" : new DecimalFormat("##.###").format(j.getExperience());
 		case user_jmaxexp_$1:
@@ -519,27 +524,27 @@ public class Placeholder {
 		    return j == null ? "0" : Integer.toString(j.getJob().getMaxLevel(user));
 		case user_boost_$1_$2:
 		    return (vals.size() < 2 || j == null) ? "" : simplifyDouble(user.getBoost(j.getJob().getName(),
-				CurrencyType.getByName(vals.get(1))));
+			CurrencyType.getByName(vals.get(1))));
 		case user_jtoplvl_$1_$2:
 		    if (vals.size() < 2 || job == null)
 			return "";
 
-			try {
-			    jobLevel.set(Integer.parseInt(vals.get(1)));
-			} catch (NumberFormatException e) {
-			    return "";
+		    try {
+			jobLevel.set(Integer.parseInt(vals.get(1)));
+		    } catch (NumberFormatException e) {
+			return "";
+		    }
+
+		    return CompletableFuture.supplyAsync(() -> {
+			for (TopList l : Jobs.getJobsDAO().getGlobalTopList(jobLevel.get())) {
+			    if (l.getPlayerInfo().getName().equals(user.getName())) {
+				JobProgression prog = l.getPlayerInfo().getJobsPlayer().getJobProgression(job);
+				return prog == null ? "" : prog.getLevelFormatted();
+			    }
 			}
 
-			return CompletableFuture.supplyAsync(() -> {
-			    for (TopList l : Jobs.getJobsDAO().getGlobalTopList(jobLevel.get())) {
-				if (l.getPlayerInfo().getName().equals(user.getName())) {
-				    JobProgression prog = l.getPlayerInfo().getJobsPlayer().getJobProgression(job);
-				    return prog == null ? "" : prog.getLevelFormatted();
-				}
-			    }
-
-			    return "";
-			}).join();
+			return "";
+		    }).join();
 		case user_isin_$1:
 		    return job == null ? "no" : convert(user.isInJob(job));
 		case user_job_$1:
@@ -581,23 +586,20 @@ public class Placeholder {
 			if (job == null)
 			    return "";
 
-			if (!Jobs.getCommandManager().hasJobPermission(player, job) || user.isInJob(job))
+			if (!Jobs.getCommandManager().hasJobPermission(player, job) ||
+			    user.isInJob(job) ||
+			    job.getMaxSlots() != null && Jobs.getUsedSlots(job) >= job.getMaxSlots() ||
+			    !job.isIgnoreMaxJobs() && !Jobs.getPlayerManager().getJobsLimit(user, (short) user.progression.size()))
 			    return convert(false);
 
-			if (job.getMaxSlots() != null && Jobs.getUsedSlots(job) >= job.getMaxSlots())
-			    return convert(false);
+			return convert(true);
 
-			int confMaxJobs = Jobs.getGCManager().getMaxJobs();
-			short playerMaxJobs = (short) user.progression.size();
-			return convert(confMaxJobs > 0 && playerMaxJobs >= confMaxJobs
-			    && !Jobs.getPlayerManager().getJobsLimit(user, playerMaxJobs));
-
-			case maxjobs:
-			    return Integer.toString(Jobs.getPlayerManager().getMaxJobs(user));
+		    case maxjobs:
+			return Integer.toString(Jobs.getPlayerManager().getMaxJobs(user));
 
 		    default:
 			break;
-	    }
+		    }
 		}
 	    }
 	}

@@ -128,6 +128,8 @@ import net.Zrips.CMILib.Container.CMILocation;
 import net.Zrips.CMILib.Entities.CMIEntityType;
 import net.Zrips.CMILib.Items.CMIItemStack;
 import net.Zrips.CMILib.Items.CMIMaterial;
+import net.Zrips.CMILib.Locale.LC;
+import net.Zrips.CMILib.Messages.CMIMessages;
 import net.Zrips.CMILib.Version.Version;
 
 public final class JobsPaymentListener implements Listener {
@@ -211,8 +213,7 @@ public final class JobsPaymentListener implements Listener {
 	    ItemStack currentItem = event.getCurrentItem();
 
 	    if (resultStack.hasItemMeta() && resultStack.getItemMeta().hasDisplayName()) {
-		Jobs.action(jPlayer, new ItemNameActionInfo(CMIChatColor.stripColor(plugin
-		    .getComplement().getDisplayName(resultStack.getItemMeta())), ActionType.VTRADE));
+		Jobs.action(jPlayer, new ItemNameActionInfo(CMIChatColor.stripColor(resultStack.getItemMeta().getDisplayName()), ActionType.VTRADE));
 	    } else if (currentItem != null) {
 		Jobs.action(jPlayer, new ItemActionInfo(currentItem, ActionType.VTRADE));
 	    }
@@ -234,8 +235,7 @@ public final class JobsPaymentListener implements Listener {
 		    while (newItemsCount >= 1) {
 			newItemsCount--;
 			if (resultStack.hasItemMeta() && resultStack.getItemMeta().hasDisplayName())
-			    Jobs.action(jPlayer, new ItemNameActionInfo(CMIChatColor.stripColor(plugin
-				.getComplement().getDisplayName(resultStack.getItemMeta())), ActionType.VTRADE));
+			    Jobs.action(jPlayer, new ItemNameActionInfo(CMIChatColor.stripColor(resultStack.getItemMeta().getDisplayName()), ActionType.VTRADE));
 			else
 			    Jobs.action(jPlayer, new ItemActionInfo(resultStack, ActionType.VTRADE));
 		    }
@@ -746,8 +746,7 @@ public final class JobsPaymentListener implements Listener {
 		PotionMeta potion = (PotionMeta) currentItem.getItemMeta();
 		Jobs.action(jPlayer, new PotionItemActionInfo(currentItem, ActionType.CRAFT, potion.getBasePotionData().getType()));
 	    } else if (resultStack.hasItemMeta() && resultStack.getItemMeta().hasDisplayName()) {
-		Jobs.action(jPlayer, new ItemNameActionInfo(CMIChatColor.stripColor(plugin
-		    .getComplement().getDisplayName(resultStack.getItemMeta())), ActionType.CRAFT));
+		Jobs.action(jPlayer, new ItemNameActionInfo(CMIChatColor.stripColor(resultStack.getItemMeta().getDisplayName()), ActionType.CRAFT));
 	    } else if (currentItem != null) {
 		Jobs.action(jPlayer, new ItemActionInfo(currentItem, ActionType.CRAFT));
 	    }
@@ -773,8 +772,7 @@ public final class JobsPaymentListener implements Listener {
 			org.bukkit.inventory.meta.ItemMeta resultItemMeta = resultStack.getItemMeta();
 
 			if (resultItemMeta != null && resultItemMeta.hasDisplayName())
-			    Jobs.action(jPlayer, new ItemNameActionInfo(CMIChatColor.stripColor(plugin
-				.getComplement().getDisplayName(resultItemMeta)), ActionType.CRAFT));
+			    Jobs.action(jPlayer, new ItemNameActionInfo(CMIChatColor.stripColor(resultItemMeta.getDisplayName()), ActionType.CRAFT));
 			else
 			    Jobs.action(jPlayer, new ItemActionInfo(resultStack, ActionType.CRAFT));
 		    }
@@ -964,10 +962,10 @@ public final class JobsPaymentListener implements Listener {
 	String originalName = null;
 	String newName = null;
 	if (firstSlot.hasItemMeta())
-	    originalName = plugin.getComplement().getDisplayName(firstSlot.getItemMeta());
+	    originalName = firstSlot.getItemMeta().getDisplayName();
 
 	if (resultStack.hasItemMeta())
-	    newName = plugin.getComplement().getDisplayName(resultStack.getItemMeta());
+	    newName = resultStack.getItemMeta().getDisplayName();
 
 	if (originalName != null && !originalName.equals(newName) && inv.getItem(1) == null && !Jobs.getGCManager().PayForRenaming)
 	    return;
@@ -1106,7 +1104,21 @@ public final class JobsPaymentListener implements Listener {
 	    return;
 
 	final Block finalBlock = block;
-	plugin.getBlockOwnerShip(CMIMaterial.get(finalBlock)).ifPresent(os -> os.remove(finalBlock));
+	plugin.getBlockOwnerShip(CMIMaterial.get(finalBlock)).ifPresent(os -> {
+
+	    if (os.disable(finalBlock)) {
+
+		UUID uuid = plugin.getBlockOwnerShip(CMIMaterial.get(finalBlock)).get().getOwnerByLocation(finalBlock.getLocation());
+		Player player = Bukkit.getPlayer(uuid);
+		if (player == null || !player.isOnline())
+		    return;
+
+		CMIMessages.sendMessage(player, Jobs.getLanguage().getMessage("general.error.blockDisabled",
+		    "[type]", CMIMaterial.get(finalBlock).getName(),
+		    "[location]", LC.Location_Full.getLocale(finalBlock.getLocation())));
+	    }
+
+	});
     }
 
     @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
@@ -1120,7 +1132,19 @@ public final class JobsPaymentListener implements Listener {
 	final BrewingStand stand = (BrewingStand) event.getDestination().getHolder();
 
 	if (Jobs.getGCManager().canPerformActionInWorld(stand.getWorld()))
-	    plugin.getBlockOwnerShip(CMIMaterial.get(stand.getBlock())).ifPresent(os -> os.remove(stand.getBlock()));
+	    plugin.getBlockOwnerShip(CMIMaterial.get(stand.getBlock())).ifPresent(os -> {
+		if (os.disable(stand.getBlock())) {
+
+		    UUID uuid = plugin.getBlockOwnerShip(CMIMaterial.get(stand.getBlock())).get().getOwnerByLocation(stand.getLocation());
+		    Player player = Bukkit.getPlayer(uuid);
+		    if (player == null || !player.isOnline())
+			return;
+
+		    CMIMessages.sendMessage(player, Jobs.getLanguage().getMessage("general.error.blockDisabled",
+			"[type]", CMIMaterial.get(stand.getBlock()).getName(),
+			"[location]", LC.Location_Full.getLocale(stand.getLocation())));
+		}
+	    });
     }
 
     @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
@@ -1159,6 +1183,9 @@ public final class JobsPaymentListener implements Listener {
 
 	Player player = Bukkit.getPlayer(uuid);
 	if (player == null || !player.isOnline())
+	    return;
+
+	if (bos.isDisabled(uuid, block.getLocation()))
 	    return;
 
 	if (Jobs.getGCManager().blockOwnershipRange > 0 && Util.getDistance(player.getLocation(), block.getLocation()) > Jobs.getGCManager().blockOwnershipRange)
@@ -1250,10 +1277,13 @@ public final class JobsPaymentListener implements Listener {
 	if (!Jobs.getGCManager().payNearSpawner() && lVictim.hasMetadata(Jobs.getPlayerManager().getMobSpawnerMetadata())) {
 	    try {
 		// So lets remove meta in case some plugin removes entity in wrong way.
-		lVictim.removeMetadata(Jobs.getPlayerManager().getMobSpawnerMetadata(), plugin);
-	    } catch (Exception ignored) {
+		// Need to delay action for other function to properly check for existing meta data relating to this entity before clearing it out
+		// Longer delay is needed due to mob split event being fired few seconds after mob dies and not at same time
+		Bukkit.getServer().getScheduler().scheduleSyncDelayedTask(plugin, () -> {
+		    lVictim.removeMetadata(Jobs.getPlayerManager().getMobSpawnerMetadata(), plugin);
+		}, 200L);
+	    } catch (Throwable ignored) {
 	    }
-
 	    return;
 	}
 
@@ -1752,6 +1782,8 @@ public final class JobsPaymentListener implements Listener {
 		CMIActionBar.send(p, Jobs.getLanguage().getMessage("general.error.newRegistration", "[block]", name,
 		    "[current]", blockOwner.getTotal(jPlayer.getUniqueId()),
 		    "[max]", jPlayer.getMaxOwnerShipAllowed(blockOwner.getType()) == 0 ? "-" : jPlayer.getMaxOwnerShipAllowed(blockOwner.getType())));
+	    } else if (done == ownershipFeedback.reenabled && jPlayer != null) {
+		CMIActionBar.send(p, Jobs.getLanguage().getMessage("general.error.reenabledBlock"));
 	    }
 	} else if (!block.getType().toString().startsWith("STRIPPED_") &&
 	    event.getAction() == Action.RIGHT_CLICK_BLOCK && jPlayer != null && hand.toString().endsWith("_AXE")) {
@@ -1775,7 +1807,7 @@ public final class JobsPaymentListener implements Listener {
     @EventHandler(ignoreCancelled = true)
     public void onExplore(JobsChunkChangeEvent event) {
 
-	if (!Jobs.getExplore().isExploreEnabled())
+	if (!Jobs.getExploreManager().isExploreEnabled())
 	    return;
 
 	Player player = event.getPlayer();
@@ -1810,7 +1842,7 @@ public final class JobsPaymentListener implements Listener {
 	if (jPlayer == null)
 	    return;
 
-	ExploreRespond respond = Jobs.getExplore().chunkRespond(jPlayer.getUserId(), event.getNewChunk());
+	ExploreRespond respond = Jobs.getExploreManager().chunkRespond(jPlayer.getUserId(), event.getNewChunk());
 
 	if (!respond.isNewChunk())
 	    return;
@@ -1879,7 +1911,8 @@ public final class JobsPaymentListener implements Listener {
 
 	CMIMaterial mat = CMIMaterial.get(block);
 
-	if (!mat.equals(CMIMaterial.SUGAR_CANE) && !mat.equals(CMIMaterial.BAMBOO) && !mat.equals(CMIMaterial.KELP_PLANT))
+	if (!mat.equals(CMIMaterial.SUGAR_CANE) && !mat.equals(CMIMaterial.BAMBOO) && !mat.equals(CMIMaterial.KELP_PLANT) && !mat.equals(CMIMaterial.WEEPING_VINES) && !mat.equals(
+	    CMIMaterial.WEEPING_VINES_PLANT))
 	    return;
 
 	if (!Jobs.getGCManager().canPerformActionInWorld(block.getWorld()))
@@ -1888,7 +1921,12 @@ public final class JobsPaymentListener implements Listener {
 	if (event.getSourceBlock().equals(event.getBlock()))
 	    return;
 
-	if (event.getBlock().getLocation().getBlockY() <= event.getSourceBlock().getLocation().getBlockY())
+	if ((mat.equals(CMIMaterial.SUGAR_CANE) || mat.equals(CMIMaterial.BAMBOO) || mat.equals(CMIMaterial.KELP_PLANT)) &&
+	    event.getBlock().getLocation().getBlockY() <= event.getSourceBlock().getLocation().getBlockY())
+	    return;
+
+	if ((mat.equals(CMIMaterial.WEEPING_VINES) || mat.equals(CMIMaterial.WEEPING_VINES_PLANT)) &&
+	    event.getBlock().getLocation().getBlockY() >= event.getSourceBlock().getLocation().getBlockY())
 	    return;
 
 	Location loc = event.getSourceBlock().getLocation().clone();

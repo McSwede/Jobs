@@ -98,7 +98,7 @@ public class JobsPlayer {
 	this.userName = player.getName() == null ? "Unknown" : player.getName();
 	this.playerUUID = player.getUniqueId();
     }
-    
+
     public JobsPlayer(Player player) {
 	this.userName = player.getName() == null ? "Unknown" : player.getName();
 	this.playerUUID = player.getUniqueId();
@@ -398,16 +398,10 @@ public class JobsPlayer {
     }
 
     public int getPlayerMaxQuest(String jobName) {
-	int m1 = (int) Jobs.getPermissionManager().getMaxPermission(this, "jobs.maxquest." + jobName, false, true);
-	int max = m1;
-
-	m1 = (int) Jobs.getPermissionManager().getMaxPermission(this, "jobs.maxquest.all", false, true);
-		
-	if (m1 != 0 && (m1 > max || m1 < max)) {
-	    max = m1;
-	}
-
-	return max;
+	int m1 = (int) Jobs.getPermissionManager().getMaxPermission(this, "jobs.maxquest.all", false, true);
+	if (m1 != 0)
+	    return m1;
+	return (int) Jobs.getPermissionManager().getMaxPermission(this, "jobs.maxquest." + jobName, false, true);
     }
 
     /**
@@ -896,7 +890,6 @@ public class JobsPlayer {
      * Perform disconnect for this player
      */
     public void onDisconnect() {
-//	Jobs.getJobsDAO().savePoints(this);
 	clearBossMaps();
 	isOnline = false;
 	Jobs.getPlayerManager().addPlayerToCache(this);
@@ -1044,10 +1037,10 @@ public class JobsPlayer {
 
     public void resetQuests(List<QuestProgression> quests) {
 	for (QuestProgression oneQ : quests) {
+	    oneQ.reset();
 	    Quest quest = oneQ.getQuest();
-
 	    if (quest != null) {
-		Map<String, QuestProgression> map = qProgression.remove(quest.getJob().getName());
+		Map<String, QuestProgression> map = qProgression.get(quest.getJob().getName());
 
 		if (map != null) {
 		    map.clear();

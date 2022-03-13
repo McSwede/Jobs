@@ -25,6 +25,7 @@ import com.gamingmesh.jobs.stuff.Util;
 
 import net.Zrips.CMILib.ActionBar.CMIActionBar;
 import net.Zrips.CMILib.Container.PageInfo;
+import net.Zrips.CMILib.Logs.CMIDebug;
 import net.Zrips.CMILib.RawMessages.RawMessage;
 
 public class JobsCommands implements CommandExecutor {
@@ -128,22 +129,41 @@ public class JobsCommands implements CommandExecutor {
 	    return true;
 	}
 
-	PageInfo pi = new PageInfo(7, commands.size(), page);
+	PageInfo pi = new PageInfo(10, commands.size(), page);
 	if (page > pi.getTotalPages()) {
 	    CMIActionBar.send(sender, Jobs.getLanguage().getMessage("general.error.noHelpPage"));
 	    return true;
 	}
 
-	sender.sendMessage(Jobs.getLanguage().getMessage("command.help.output.title"));
+	RawMessage rm = new RawMessage();
+	rm.addText(Jobs.getLanguage().getMessage("command.help.output.title"));
+
+	boolean pl = sender instanceof Player;
+
+	// Old format
+//	sender.sendMessage(Jobs.getLanguage().getMessage("command.help.output.title"));
 	for (String one : commands) {
 	    if (!pi.isEntryOk())
 		continue;
 	    if (pi.isBreak())
 		break;
 
-	    sender.sendMessage(Jobs.getLanguage().getMessage("command.help.output.cmdInfoFormat", "[command]", getUsage(one), "[description]", Jobs.getLanguage().getMessage("command." + one
-		+ ".help.info")));
+	    // Old format
+//	    sender.sendMessage(Jobs.getLanguage().getMessage("command.help.output.cmdInfoFormat", "[command]", getUsage(one), "[description]", Jobs.getLanguage().getMessage("command." + one
+//		+ ".help.info")));
+
+	    if (pl) {
+		rm.addText("\n" + getUsage(one));
+		rm.addHover(Jobs.getLanguage().getMessage("command." + one + ".help.info"));
+		rm.addSuggestion("/" + Jobs.getLanguage().getMessage("command.help.output.label").toLowerCase() + " " + one + " ");
+	    } else {
+		rm.addText("\n" + Jobs.getLanguage().getMessage("command.help.output.cmdInfoFormat", "[command]", getUsage(one), "[description]", Jobs.getLanguage().getMessage("command." + one
+		    + ".help.info")));
+	    }
+
 	}
+
+	rm.show(sender);
 
 	plugin.showPagination(sender, pi, LABEL + " ?");
 	return true;
@@ -388,6 +408,9 @@ public class JobsCommands implements CommandExecutor {
 	return " " + (isMaxLevelReached ? "" : jobProgressMessage(jobProg.getMaxExperience(), jobProg.getExperience())) + " " + message;
     }
 
+    private String pos = ChatColor.DARK_GREEN + "\u258F";
+    private String pros = ChatColor.YELLOW + "\u258F";
+
     public String jobProgressMessage(double max, double current) {
 	if (current < 0)
 	    current = 0;
@@ -398,21 +421,19 @@ public class JobsCommands implements CommandExecutor {
 	if (max < 1)
 	    max = 2;
 
-	String message = "";
-	String pos = ChatColor.DARK_GREEN + "\u258F";
-	String pros = ChatColor.YELLOW + "\u258F";
+	StringBuilder message = new StringBuilder();
 	int percentage = (int) ((current * 50.0) / max);
 	for (int i = 0; i < percentage; i++) {
-	    message += pos;
+	    message.append(pos);
 	}
 
 	if (50 - percentage < 0)
 	    percentage = 50;
 
 	for (int i = 0; i < 50 - percentage; i++) {
-	    message += pros;
+	    message.append(pros);
 	}
-	return message;
+	return message.toString();
     }
 
     /**
