@@ -18,7 +18,12 @@
 
 package com.gamingmesh.jobs;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.ThreadLocalRandom;
@@ -34,6 +39,7 @@ import org.bukkit.entity.Player;
 import org.bukkit.entity.Tameable;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.FireworkMeta;
+import org.jetbrains.annotations.Nullable;
 
 import com.gamingmesh.jobs.api.JobsJoinEvent;
 import com.gamingmesh.jobs.api.JobsLeaveEvent;
@@ -184,24 +190,10 @@ public class PlayerManager {
      * @return {@link PlayerInfo}
      */
     public PlayerInfo getPlayerInfo(String name) {
-	if (Version.isCurrentEqualOrLower(Version.v1_11_R1) || !Version.isPaper()) {
-	    JobsPlayer jPlayer = playersNameCache.get(name.toLowerCase());
-	    if (jPlayer == null)
-		return null;
-	    return playerUUIDMap.get(jPlayer.getUniqueId());
-	}
-
 	JobsPlayer jPlayer = playersNameCache.get(name.toLowerCase());
-
-	if (jPlayer != null) {
-	    return playerUUIDMap.get(jPlayer.getUniqueId());
-	}
-
-	UUID playerUUID = Bukkit.getPlayerUniqueId(name);
-	if (playerUUID == null)
+	if (jPlayer == null)
 	    return null;
-
-	return playerUUIDMap.get(playerUUID);
+	return playerUUIDMap.get(jPlayer.getUniqueId());
     }
 
     /**
@@ -384,27 +376,7 @@ public class PlayerManager {
      * @return {@link JobsPlayer} the player job info of the player
      */
     public JobsPlayer getJobsPlayer(String playerName) {
-	if (Version.isCurrentEqualOrLower(Version.v1_11_R1) || !Version.isPaper()) {
-	    return playersNameCache.get(playerName.toLowerCase());
-	}
-
-	JobsPlayer jPlayer = playersNameCache.get(playerName.toLowerCase());
-
-	if (jPlayer != null) {
-	    return jPlayer;
-	}
-
-	UUID playerUUID = Bukkit.getPlayerUniqueId(playerName);
-
-	if (playerUUID == null)
-	    return null;
-	jPlayer = playersUUID.get(playerUUID);
-
-	if (jPlayer != null) {
-	    playersNameCache.put(playerName.toLowerCase(), jPlayer);
-	}
-
-	return jPlayer != null ? jPlayer : playersUUIDCache.get(playerUUID);
+	return playersNameCache.get(playerName.toLowerCase());
     }
 
     /**

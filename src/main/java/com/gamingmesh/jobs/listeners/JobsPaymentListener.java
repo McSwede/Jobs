@@ -129,6 +129,7 @@ import net.Zrips.CMILib.Entities.CMIEntityType;
 import net.Zrips.CMILib.Items.CMIItemStack;
 import net.Zrips.CMILib.Items.CMIMaterial;
 import net.Zrips.CMILib.Locale.LC;
+import net.Zrips.CMILib.Logs.CMIDebug;
 import net.Zrips.CMILib.Messages.CMIMessages;
 import net.Zrips.CMILib.Version.Version;
 
@@ -1113,9 +1114,16 @@ public final class JobsPaymentListener implements Listener {
 		if (player == null || !player.isOnline())
 		    return;
 
-		CMIMessages.sendMessage(player, Jobs.getLanguage().getMessage("general.error.blockDisabled",
-		    "[type]", CMIMaterial.get(finalBlock).getName(),
-		    "[location]", LC.Location_Full.getLocale(finalBlock.getLocation())));
+		JobsPlayer jPlayer = Jobs.getPlayerManager().getJobsPlayer(player);
+
+		String lc = CMILocation.toString(finalBlock.getLocation());
+
+		if (!jPlayer.hasBlockOwnerShipInform(lc)) {
+		    CMIMessages.sendMessage(player, Jobs.getLanguage().getMessage("general.error.blockDisabled",
+			"[type]", CMIMaterial.get(finalBlock).getName(),
+			"[location]", LC.Location_Full.getLocale(finalBlock.getLocation())));
+		    jPlayer.addBlockOwnerShipInform(lc);
+		}
 	    }
 
 	});
@@ -1140,9 +1148,13 @@ public final class JobsPaymentListener implements Listener {
 		    if (player == null || !player.isOnline())
 			return;
 
-		    CMIMessages.sendMessage(player, Jobs.getLanguage().getMessage("general.error.blockDisabled",
-			"[type]", CMIMaterial.get(stand.getBlock()).getName(),
-			"[location]", LC.Location_Full.getLocale(stand.getLocation())));
+		    JobsPlayer jPlayer = Jobs.getPlayerManager().getJobsPlayer(player);
+		    String lc = CMILocation.toString(stand.getLocation());
+		    if (!jPlayer.hasBlockOwnerShipInform(lc)) {
+			CMIMessages.sendMessage(player, Jobs.getLanguage().getMessage("general.error.blockDisabled",
+			    "[type]", CMIMaterial.get(stand.getBlock()).getName(),
+			    "[location]", LC.Location_Full.getLocale(stand.getLocation())));
+		    }
 		}
 	    });
     }
@@ -1806,7 +1818,6 @@ public final class JobsPaymentListener implements Listener {
 
     @EventHandler(ignoreCancelled = true)
     public void onExplore(JobsChunkChangeEvent event) {
-
 	if (!Jobs.getExploreManager().isExploreEnabled())
 	    return;
 

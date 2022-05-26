@@ -2484,14 +2484,14 @@ public abstract class JobsDAO {
 
 		    int id = jobsWorld == null ? 0 : jobsWorld.getId();
 		    if (id != 0)
-			for (Entry<Long, ExploreChunk> oneChunk : region.getValue().getChunks().entrySet()) {
+			for (Entry<Short, ExploreChunk> oneChunk : region.getValue().getChunks().entrySet()) {
 			    ExploreChunk chunk = oneChunk.getValue();
 			    if (chunk.getDbId() != -1)
 				continue;
 			    prest2.setInt(1, id);
-			    prest2.setInt(2, region.getValue().getChunkX(oneChunk.getKey()));
-			    prest2.setInt(3, region.getValue().getChunkZ(oneChunk.getKey()));
-			    prest2.setString(4, chunk.serializeNames());
+			    prest2.setInt(2, region.getValue().getChunkGlobalX(oneChunk.getKey()));
+			    prest2.setInt(3, region.getValue().getChunkGlobalZ(oneChunk.getKey()));
+			    prest2.setString(4, chunk.serializeNames()); 
 			    prest2.setString(5, jobsWorld != null ? jobsWorld.getName() : "");
 			    prest2.addBatch();
 			    i++;
@@ -2712,8 +2712,7 @@ public abstract class JobsDAO {
 	try {
 	    prest = conn.prepareStatement("SELECT `" + JobsTableFields.userid.getCollumn() + "`, `" + JobsTableFields.level.getCollumn() + "`, `" + JobsTableFields.experience.getCollumn() + "` FROM `"
 		+ getJobsTableName() + "` WHERE `" + JobsTableFields.jobid.getCollumn() + "` LIKE ? OR `" + JobsTableFields.jobid.getCollumn() + "` LIKE ? ORDER BY `" + JobsTableFields.level.getCollumn()
-		+ "` DESC, LOWER("
-		+ JobsTableFields.experience.getCollumn() + ") DESC LIMIT " + limit + ", 50;");
+		+ "` DESC, `" + JobsTableFields.experience.getCollumn() + "` DESC LIMIT " + limit + ", 50;");
 	    prest.setInt(1, job.getId());
 	    prest.setInt(2, job.getLegacyId());
 	    res = prest.executeQuery();
