@@ -12,6 +12,8 @@ import com.gamingmesh.jobs.commands.Cmd;
 import com.gamingmesh.jobs.container.TopList;
 
 import net.Zrips.CMILib.Container.PageInfo;
+import net.Zrips.CMILib.Locale.LC;
+import net.Zrips.CMILib.Messages.CMIMessages;
 import net.Zrips.CMILib.Scoreboards.CMIScoreboard;
 
 public class gtop implements Cmd {
@@ -19,7 +21,7 @@ public class gtop implements Cmd {
     @Override
     public boolean perform(Jobs plugin, final CommandSender sender, final String[] args) {
 	if (!(sender instanceof Player)) {
-	    sender.sendMessage(Jobs.getLanguage().getMessage("general.error.ingame"));
+	    CMIMessages.sendMessage(sender, LC.info_Ingame);
 	    return false;
 	}
 
@@ -67,6 +69,7 @@ public class gtop implements Cmd {
 		sender.sendMessage(Jobs.getLanguage().getMessage("command.gtop.output.list",
 		    "%number%", pi.getPositionForOutput(i),
 		    "%playername%", One.getPlayerInfo().getName(),
+		    "%playerdisplayname%", One.getPlayerInfo().getDisplayName(),
 		    "%level%", One.getLevel(),
 		    "%exp%", One.getExp()));
 		++i;
@@ -81,6 +84,7 @@ public class gtop implements Cmd {
 		ls.add(Jobs.getLanguage().getMessage("scoreboard.line",
 		    "%number%", pi.getPositionForOutput(i),
 		    "%playername%", one.getPlayerInfo().getName(),
+		    "%playerdisplayname%", one.getPlayerInfo().getDisplayName(),
 		    "%level%", one.getLevel()));
 		++i;
 	    }

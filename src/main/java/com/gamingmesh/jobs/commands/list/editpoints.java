@@ -6,6 +6,9 @@ import com.gamingmesh.jobs.commands.Cmd;
 import com.gamingmesh.jobs.container.JobsPlayer;
 import com.gamingmesh.jobs.container.PlayerPoints;
 
+import net.Zrips.CMILib.Locale.LC;
+import net.Zrips.CMILib.Messages.CMIMessages;
+
 public class editpoints implements Cmd {
 
     @Override
@@ -25,7 +28,7 @@ public class editpoints implements Cmd {
 	try {
 	    amount = Double.parseDouble(args[2]);
 	} catch (NumberFormatException e) {
-	    sender.sendMessage(Jobs.getLanguage().getMessage("general.error.notNumber"));
+	    CMIMessages.sendMessage(sender, LC.info_UseInteger);
 	    return true;
 	}
 
@@ -35,6 +38,7 @@ public class editpoints implements Cmd {
 	    pointInfo.takePoints(amount);
 	    sender.sendMessage(Jobs.getLanguage().getMessage("command.editpoints.output.take",
 		"%playername%", jPlayer.getName(),
+		"%playerdisplayname%", jPlayer.getDisplayName(),
 		"%amount%", amount,
 		"%total%", (int) (pointInfo.getCurrentPoints() * 100) / 100D));
 	    break;
@@ -42,6 +46,7 @@ public class editpoints implements Cmd {
 	    pointInfo.addPoints(amount);
 	    sender.sendMessage(Jobs.getLanguage().getMessage("command.editpoints.output.add",
 		"%playername%", jPlayer.getName(),
+		"%playerdisplayname%", jPlayer.getDisplayName(),
 		"%amount%", amount,
 		"%total%", (int) (pointInfo.getCurrentPoints() * 100) / 100D));
 	    break;
@@ -49,6 +54,7 @@ public class editpoints implements Cmd {
 	    pointInfo.setPoints(amount);
 	    sender.sendMessage(Jobs.getLanguage().getMessage("command.editpoints.output.set",
 		"%playername%", jPlayer.getName(),
+		"%playerdisplayname%", jPlayer.getDisplayName(),
 		"%amount%", amount));
 	    break;
 	default:

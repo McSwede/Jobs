@@ -46,6 +46,7 @@ import net.Zrips.CMILib.Colors.CMIChatColor;
 import net.Zrips.CMILib.Equations.Parser;
 import net.Zrips.CMILib.Items.CMIMaterial;
 import net.Zrips.CMILib.Logs.CMIDebug;
+import net.Zrips.CMILib.Time.CMITimeManager;
 
 public class JobsPlayer {
 
@@ -256,7 +257,7 @@ public class JobsPlayer {
 	    }
 
 	    if (data.isAnnounceTime(limit.getAnnouncementDelay()) && player.isOnline())
-		CMIActionBar.send(player, Jobs.getLanguage().getMessage("command.limit.output." + name + "time", "%time%", TimeManage.to24hourShort(data.getLeftTime(type))));
+		CMIActionBar.send(player, Jobs.getLanguage().getMessage("command.limit.output." + name + "time", "%time%", CMITimeManager.to24hourShort(data.getLeftTime(type))));
 
 	    if (data.isReseted(type))
 		data.setReseted(type, false);
@@ -486,6 +487,17 @@ public class JobsPlayer {
 	if (player != null)
 	    userName = player.getName();
 	return userName;
+    }
+
+    public String getDisplayName() {
+	if (!this.isOnline())
+	    return getName();
+	Player p = this.getPlayer();
+
+	if (p == null)
+	    return getName();
+
+	return p.getDisplayName() == null || p.getDisplayName().isEmpty() ? getName() : p.getDisplayName();
     }
 
     /**

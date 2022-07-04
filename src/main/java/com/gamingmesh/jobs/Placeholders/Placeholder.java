@@ -16,7 +16,6 @@ import org.bukkit.OfflinePlayer;
 import org.bukkit.entity.Player;
 
 import com.gamingmesh.jobs.Jobs;
-import com.gamingmesh.jobs.commands.JobsCommands;
 import com.gamingmesh.jobs.container.Boost;
 import com.gamingmesh.jobs.container.CurrencyType;
 import com.gamingmesh.jobs.container.Job;
@@ -33,7 +32,7 @@ import com.gamingmesh.jobs.stuff.TimeManage;
 import net.Zrips.CMILib.Colors.CMIChatColor;
 import net.Zrips.CMILib.Container.CMIList;
 import net.Zrips.CMILib.Locale.LC;
-import net.Zrips.CMILib.Logs.CMIDebug;
+import net.Zrips.CMILib.Time.CMITimeManager;
 
 public class Placeholder {
 
@@ -450,7 +449,7 @@ public class Placeholder {
 	    case user_doneq:
 		return Integer.toString(user.getDoneQuests());
 	    case user_seen:
-		return TimeManage.to24hourShort(System.currentTimeMillis() - user.getSeen());
+		return CMITimeManager.to24hourShort(System.currentTimeMillis() - user.getSeen());
 	    case user_totallevels:
 		return Integer.toString(user.getTotalLevels());
 	    case user_points:
@@ -508,7 +507,7 @@ public class Placeholder {
 		case plimit_$1:
 		    return Double.toString(user.getPaymentLimit().getAmount(CurrencyType.getByName(keyValue)));
 		case plimit_tleft_$1:
-		    return TimeManage.to24hourShort(user.getPaymentLimit().getLeftTime(CurrencyType.getByName(keyValue)));
+		    return CMITimeManager.to24hourShort(user.getPaymentLimit().getLeftTime(CurrencyType.getByName(keyValue)));
 		case user_jlevel_$1:
 		    return j == null ? "0" : j.getLevelFormatted();
 		case user_jexp_$1:
@@ -668,6 +667,6 @@ public class Placeholder {
     }
 
     private static String convert(boolean state) {
-	return Jobs.getLanguage().getMessage("general.info." + (state ? "true" : "false"));
+	return state ? LC.info_variables_True.getLocale() : LC.info_variables_False.getLocale();
     }
 }
