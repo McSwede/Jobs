@@ -39,9 +39,12 @@ import com.gamingmesh.jobs.CMILib.CMIEnchantment;
 import com.gamingmesh.jobs.container.CurrencyLimit;
 import com.gamingmesh.jobs.container.CurrencyType;
 
+import net.Zrips.CMILib.CMILib;
+import net.Zrips.CMILib.Container.CMIArray;
 import net.Zrips.CMILib.Container.CMIList;
 import net.Zrips.CMILib.Equations.Parser;
 import net.Zrips.CMILib.FileHandler.ConfigReader;
+import net.Zrips.CMILib.Items.CMIItemStack;
 import net.Zrips.CMILib.Items.CMIMaterial;
 import net.Zrips.CMILib.Version.Version;
 
@@ -49,6 +52,8 @@ public class GeneralConfigManager {
 
     public List<Integer> BroadcastingLevelUpLevels = new ArrayList<>();
     public List<String> DisabledWorldsList = new ArrayList<>();
+
+    public List<String> helpPageBehavior = new ArrayList<>();
 
     public final Map<CMIMaterial, Map<Enchantment, Integer>> whiteListedItems = new HashMap<>();
 
@@ -104,8 +109,9 @@ public class GeneralConfigManager {
         LoggingUse, payForCombiningItems, BlastFurnacesReassign = false, SmokerReassign = false, payForStackedEntities, payForAbove = false,
         payForEachVTradeItem, allowEnchantingBoostedItems, bossBarAsync = false, preventShopItemEnchanting;
 
-    public ItemStack guiBackButton, guiNextButton;
-    public CMIMaterial guiFiller;
+    public ItemStack guiBackButton, guiNextButton, guiInfoButton;
+    public int InfoButtonSlot = 9;
+    public List<String> InfoButtonCommands = new ArrayList<String>();
 
     public Parser DynamicPaymentEquation;
 
@@ -1041,6 +1047,42 @@ public class GeneralConfigManager {
         c.addComment("JobsGUI.SkipAmount", "Defines by how many slots we need to skip after group");
         JobsGUISkipAmount = c.get("JobsGUI.SkipAmount", 2);
 
+        CMIItemStack item = CMILib.getInstance().getItemManager().getItem(c.get("JobsGUI.BackButton.Material", "JACK_O_LANTERN"));
+        guiBackButton = item.getCMIType() == CMIMaterial.NONE ? CMIMaterial.JACK_O_LANTERN.newItemStack() : item.getItemStack();
+
+        item = CMILib.getInstance().getItemManager().getItem(c.get("JobsGUI.NextButton.Material", "ARROW"));
+        guiNextButton = item.getCMIType() == CMIMaterial.NONE ? CMIMaterial.ARROW.newItemStack() : item.getItemStack();
+
+        c.addComment("JobsGUI.InfoButton.Slot", "Slot for info button. Set it to 0 if you want to disable it","Locale can be customized in locale file under gui->infoLore section");
+        InfoButtonSlot = c.get("JobsGUI.InfoButton.Slot", 9);
+        guiInfoButton = item.getCMIType() == CMIMaterial.NONE ? CMIMaterial.ARROW.newItemStack() : item.getItemStack();
+        item = CMILib.getInstance().getItemManager().getItem(c.get("JobsGUI.InfoButton.Material",
+            "head:eyJ0ZXh0dXJlcyI6eyJTS0lOIjp7InVybCI6Imh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvMjcwNWZkOTRhMGM0MzE5MjdmYjRlNjM5YjBmY2ZiNDk3MTdlNDEyMjg1YTAyYjQzOWUwMTEyZGEyMmIyZTJlYyJ9fX0="));
+        guiInfoButton = item.getCMIType() == CMIMaterial.NONE ? CMIMaterial.ARROW.newItemStack() : item.getItemStack();
+
+        c.addComment("JobsGUI.InfoButton.Commands", "closeinv! can be used to close players inventory when you click this icon");
+        InfoButtonCommands = c.get("JobsGUI.InfoButton.Commands", Arrays.asList("closeinv!"));
+
+        c.addComment("Commands.Jobs", "What should happen when performing clean /jobs command", "Options:",
+            "Default - behaves like before and will open jobs help page with list of commands player can access",
+            "Browse - will open jobs browse GUI where player can check existing jobs and their actions",
+            "Last option is to define command you want to perform, use [playerName] variable to replace it with players name who performed it. Multiple commands can be provided too. Commands will be performed from console.");
+
+        helpPageBehavior.clear();
+        if (c.getC().isList("Commands.Jobs")) {
+            helpPageBehavior.addAll(c.get("Commands.Jobs", Arrays.asList("Default")));
+        } else {
+            helpPageBehavior.add(c.get("Commands.Jobs", "Default"));
+        }
+        if (!helpPageBehavior.isEmpty()) {
+            if (helpPageBehavior.size() == 1 && helpPageBehavior.get(0).equalsIgnoreCase("Default"))
+                helpPageBehavior.clear();
+            if (helpPageBehavior.size() == 1 && helpPageBehavior.get(0).equalsIgnoreCase("Browse")) {
+                helpPageBehavior.clear();
+                helpPageBehavior.add("browse");
+            }
+        }
+
         c.addComment("Commands.PageRow.JobsTop.AmountToShow", "Defines amount of players to be shown in one page for /jobs top & /jobs gtop");
         JobsTopAmount = c.get("Commands.PageRow.JobsTop.AmountToShow", 15);
         c.addComment("Commands.PageRow.Placeholders.AmountToShow", "Defines amount of placeholders to be shown in one page for /jobs placeholders");
@@ -1054,15 +1096,6 @@ public class GeneralConfigManager {
         ConfirmExpiryTime = c.get("Commands.JobsLeave.ConfirmExpiryTime", 10);
         c.addComment("Commands.JobsInfo.open-browse", "Open up the jobs browse action list, when your performed /jobs info command?");
         jobsInfoOpensBrowse = c.get("Commands.JobsInfo.open-browse", false);
-
-        CMIMaterial tmat = CMIMaterial.get(c.get("JobsGUI.BackButton.Material", "JACK_O_LANTERN"));
-        guiBackButton = (tmat == CMIMaterial.NONE ? CMIMaterial.JACK_O_LANTERN : tmat).newItemStack();
-
-        tmat = CMIMaterial.get(c.get("JobsGUI.NextButton.Material", "ARROW"));
-        guiNextButton = (tmat == CMIMaterial.NONE ? CMIMaterial.ARROW : tmat).newItemStack();
-
-        tmat = CMIMaterial.get(c.get("JobsGUI.Filler.Material", "GREEN_STAINED_GLASS_PANE"));
-        guiFiller = (tmat == CMIMaterial.NONE ? CMIMaterial.GREEN_STAINED_GLASS_PANE : tmat);
 
         c.addComment("BlockOwnership.Range", "Set to 0 or lower if you want to disable this. Setting to positive number will mean that player needs to be in this range from owner block to get paid");
         blockOwnershipRange = c.get("BlockOwnership.Range", 0);

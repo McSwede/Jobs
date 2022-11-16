@@ -6,11 +6,12 @@ public class BlockProtection {
 
     private static long pre = (int) (System.currentTimeMillis() / 10000000000L) * 10000000000L;
 
-    private int id;
-    private Integer time;
-    private Integer recorded;
+    private int id = -1;
+    private int schedId  = - 1;
+    private int time  = -1;
+    private int recorded = -1;
     private DBAction action;
-    private Boolean paid;
+    private boolean paid = false;
     private int x = 0;
     private int y = 0;
     private int z = 0;
@@ -41,12 +42,12 @@ public class BlockProtection {
 	return time == -1L ? -1 : (int) ((time - pre) / 1000L);
     }
 
-    private static long deconvert(Integer time) {
-	return time == null ? -1L : ((time.longValue() * 1000L) + pre);
+    private static long deconvert(int time) {
+	return (time * 1000L) + pre;
     }
 
     public void setTime(long time) {
-	this.time = time == -1 ? null : convert(time);
+	this.time = time == -1 ? -1 : convert(time);
 	this.recorded = convert(System.currentTimeMillis());
     }
 
@@ -65,11 +66,11 @@ public class BlockProtection {
     }
 
     public boolean isPaid() {
-	return paid == null || paid.booleanValue();
+	return paid;
     }
 
     public void setPaid(boolean paid) {
-	this.paid = !paid ? paid : null;
+	this.paid = paid;
     }
 
     public void setRecorded(long recorded) {
@@ -112,5 +113,13 @@ public class BlockProtection {
 
     public int getZ() {
 	return z;
+    }
+
+    public int getSchedId() {
+        return schedId;
+    }
+
+    public void setSchedId(int schedId) {
+        this.schedId = schedId;
     }
 }
