@@ -28,6 +28,7 @@ import net.Zrips.CMILib.ActionBar.CMIActionBar;
 import net.Zrips.CMILib.Container.CMIArray;
 import net.Zrips.CMILib.Container.PageInfo;
 import net.Zrips.CMILib.Locale.LC;
+import net.Zrips.CMILib.Logs.CMIDebug;
 import net.Zrips.CMILib.Messages.CMIMessages;
 import net.Zrips.CMILib.RawMessages.RawMessage;
 
@@ -51,6 +52,7 @@ public class JobsCommands implements CommandExecutor {
 
     @Override
     public boolean onCommand(CommandSender sender, Command command, String label, String[] args) {
+
         if (sender instanceof Player && !Jobs.getGCManager().canPerformActionInWorld(((Player) sender).getWorld())
             && !sender.hasPermission("jobs.disabledworld.commands")) {
             sender.sendMessage(Jobs.getLanguage().getMessage("general.error.worldisdisabled"));
@@ -354,6 +356,11 @@ public class JobsCommands implements CommandExecutor {
         message.append(":\n");
 
         JobProgression prog = player.getJobProgression(job);
+        
+        if (prog == null) {
+           prog = player.getArchivedJobProgression(job);            
+        }        
+        
         int level = prog != null ? prog.getLevel() : 1;
         int numjobs = player.progression.size();
 
@@ -428,9 +435,6 @@ public class JobsCommands implements CommandExecutor {
         return " " + (isMaxLevelReached ? "" : jobProgressMessage(jobProg.getMaxExperience(), jobProg.getExperience())) + " " + message;
     }
 
-    private String pos = ChatColor.DARK_GREEN + "\u258F";
-    private String pros = ChatColor.YELLOW + "\u258F";
-
     public String jobProgressMessage(double max, double current) {
         if (current < 0)
             current = 0;
@@ -444,14 +448,14 @@ public class JobsCommands implements CommandExecutor {
         StringBuilder message = new StringBuilder();
         int percentage = (int) ((current * 50.0) / max);
         for (int i = 0; i < percentage; i++) {
-            message.append(pos);
+            message.append(Jobs.getLanguage().getMessage("command.stats.bar2"));
         }
 
         if (50 - percentage < 0)
             percentage = 50;
 
         for (int i = 0; i < 50 - percentage; i++) {
-            message.append(pros);
+            message.append(Jobs.getLanguage().getMessage("command.stats.bar1"));
         }
         return message.toString();
     }
