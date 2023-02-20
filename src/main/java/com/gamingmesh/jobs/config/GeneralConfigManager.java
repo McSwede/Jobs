@@ -95,7 +95,8 @@ public class GeneralConfigManager {
         SignsColorizeJobName, ShowToplistInScoreboard, useGlobalTimer, useSilkTouchProtection, UseCustomNames,
         PreventSlimeSplit, PreventMagmaCubeSplit, PreventHopperFillUps, PreventBrewingStandFillUps, informOnPaymentDisable,
         BrowseUseNewLook, payExploringWhenGliding = false, resetExploringData = false, disablePaymentIfMaxLevelReached, disablePaymentIfRiding,
-        boostedItemsInOffHand = false, boostedItemsInMainHand, boostedArmorItems, boostedItemsSlotSpecific, multiplyBoostedExtraValues/*, preventCropResizePayment*/, payItemDurabilityLoss,
+        boostedItemsInOffHand = false, boostedItemsInMainHand, boostedArmorItems, boostedItemsSlotSpecific, multiplyBoostedExtraValues, addPermissionBoost, highestPermissionBoost /*, preventCropResizePayment*/,
+        payItemDurabilityLoss,
         applyToNegativeIncome, useMinimumOveralPayment, useMinimumOveralPoints, useMinimumOveralExp, useBreederFinder,
         CancelCowMilking, fixAtMaxLevel, TitleChangeChat, TitleChangeActionBar, LevelChangeChat,
         LevelChangeActionBar, SoundLevelupUse, SoundTitleChangeUse, UseServerAccount, EmptyServerAccountChat,
@@ -109,7 +110,7 @@ public class GeneralConfigManager {
         LoggingUse, payForCombiningItems, BlastFurnacesReassign = false, SmokerReassign = false, payForStackedEntities, payForAbove = false,
         payForEachVTradeItem, allowEnchantingBoostedItems, bossBarAsync = false, preventShopItemEnchanting;
 
-    public ItemStack guiBackButton, guiNextButton, guiInfoButton;
+    public ItemStack guiInfoButton;
     public int InfoButtonSlot = 9;
     public List<String> InfoButtonCommands = new ArrayList<String>();
 
@@ -493,6 +494,16 @@ public class GeneralConfigManager {
             "When set to true and for example nearSpawner set to -0.98 aka 2% of original payment with other bonuses which should double payment will result in you getting 4% instead of corrent 102% payment",
             "If set to false all bonus are sumed to one");
         multiplyBoostedExtraValues = c.get("multiply-boosted-extra-values", false);
+
+        c.addComment("highest-permission-boost",
+            "Default (false) and we will prioritize specific permission over general, which means that jobs.boost.miner.money.0.5 will override and be used instead of jobs.boost.all.money.0.8",
+            "When enabled we will pick highest permission node from all accesible ones",
+            "Only applies while add-permission-boost set to false");
+        highestPermissionBoost = c.get("highest-permission-boost", false);
+
+        c.addComment("add-permission-boost", "When enabled we will add all permission bonuses and penalties instead of picking highest one",
+            "This will add access to all permissions from jobs.boost.[jobName].[type].[amount] jobs.boost.all.[type].[amount] jobs.boost.[jobName].all.[amount] and jobs.boost.all.all.[amount] category");
+        addPermissionBoost = c.get("add-permission-boost", false);
 
         // Better implementation?
         /*c.addComment("prevent-crop-resize-payment", "Do you want to prevent crop resizing payment when placing more cactus?",
@@ -1047,16 +1058,10 @@ public class GeneralConfigManager {
         c.addComment("JobsGUI.SkipAmount", "Defines by how many slots we need to skip after group");
         JobsGUISkipAmount = c.get("JobsGUI.SkipAmount", 2);
 
-        CMIItemStack item = CMILib.getInstance().getItemManager().getItem(c.get("JobsGUI.BackButton.Material", "JACK_O_LANTERN"));
-        guiBackButton = item.getCMIType() == CMIMaterial.NONE ? CMIMaterial.JACK_O_LANTERN.newItemStack() : item.getItemStack();
-
-        item = CMILib.getInstance().getItemManager().getItem(c.get("JobsGUI.NextButton.Material", "ARROW"));
-        guiNextButton = item.getCMIType() == CMIMaterial.NONE ? CMIMaterial.ARROW.newItemStack() : item.getItemStack();
-
-        c.addComment("JobsGUI.InfoButton.Slot", "Slot for info button. Set it to 0 if you want to disable it","Locale can be customized in locale file under gui->infoLore section");
+        c.addComment("JobsGUI.InfoButton.Slot", "Slot for info button. Set it to 0 if you want to disable it", "Locale can be customized in locale file under gui->infoLore section");
         InfoButtonSlot = c.get("JobsGUI.InfoButton.Slot", 9);
-        guiInfoButton = item.getCMIType() == CMIMaterial.NONE ? CMIMaterial.ARROW.newItemStack() : item.getItemStack();
-        item = CMILib.getInstance().getItemManager().getItem(c.get("JobsGUI.InfoButton.Material",
+
+        CMIItemStack item = CMILib.getInstance().getItemManager().getItem(c.get("JobsGUI.InfoButton.Material",
             "head:eyJ0ZXh0dXJlcyI6eyJTS0lOIjp7InVybCI6Imh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvMjcwNWZkOTRhMGM0MzE5MjdmYjRlNjM5YjBmY2ZiNDk3MTdlNDEyMjg1YTAyYjQzOWUwMTEyZGEyMmIyZTJlYyJ9fX0="));
         guiInfoButton = item.getCMIType() == CMIMaterial.NONE ? CMIMaterial.ARROW.newItemStack() : item.getItemStack();
 

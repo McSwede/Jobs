@@ -383,19 +383,38 @@ public class JobsPlayer {
     }
 
     private Double getPlayerBoostNew(String jobName, CurrencyType type) {
-        Double v1 = Jobs.getPermissionManager().getMaxPermission(this, "jobs.boost." + jobName + "." + type.getName(), true, false);
-        Double boost = v1;
 
-        v1 = Jobs.getPermissionManager().getMaxPermission(this, "jobs.boost." + jobName + ".all", false, false);
-        if (v1 != 0d && (v1 > boost || v1 < boost))
+        if (Jobs.getGCManager().addPermissionBoost) {
+
+            Double boost = Jobs.getPermissionManager().getMaxPermission(this, "jobs.boost." + jobName + "." + type.getName(), true, true);
+
+            Double v1 = Jobs.getPermissionManager().getMaxPermission(this, "jobs.boost." + jobName + ".all", false, true);
+            if (v1 != 0d)
+                boost += v1;
+
+            v1 = Jobs.getPermissionManager().getMaxPermission(this, "jobs.boost.all.all", false, true);
+            if (v1 != 0d)
+                boost += v1;
+
+            v1 = Jobs.getPermissionManager().getMaxPermission(this, "jobs.boost.all." + type.getName(), false, true);
+            if (v1 != 0d)
+                boost += v1;
+
+            return boost;
+        }
+
+        Double boost = Jobs.getPermissionManager().getMaxPermission(this, "jobs.boost." + jobName + "." + type.getName(), true, false);
+
+        Double v1 = Jobs.getPermissionManager().getMaxPermission(this, "jobs.boost." + jobName + ".all", false, false);
+        if (v1 != 0d && (v1 > boost || v1 < boost && !Jobs.getGCManager().highestPermissionBoost))
             boost = v1;
 
         v1 = Jobs.getPermissionManager().getMaxPermission(this, "jobs.boost.all.all", false, false);
-        if (v1 != 0d && (v1 > boost || v1 < boost))
+        if (v1 != 0d && (v1 > boost || v1 < boost && !Jobs.getGCManager().highestPermissionBoost))
             boost = v1;
 
         v1 = Jobs.getPermissionManager().getMaxPermission(this, "jobs.boost.all." + type.getName(), false, false);
-        if (v1 != 0d && (v1 > boost || v1 < boost))
+        if (v1 != 0d && (v1 > boost || v1 < boost && !Jobs.getGCManager().highestPermissionBoost))
             boost = v1;
 
         return boost;
@@ -1466,5 +1485,17 @@ public class JobsPlayer {
         if (blockOwnerShipInform == null)
             blockOwnerShipInform = new HashSet<String>();
         this.blockOwnerShipInform.add(location);
+    }
+
+    public double getBalance() {
+        if (this.isOnline())
+            return Jobs.getEconomy().getEconomy().getBalance(this.getPlayer());
+        return Jobs.getEconomy().getEconomy().getBalance(this.getName());
+    }
+
+    public boolean withdraw(double amount) {
+        if (this.isOnline())
+            return Jobs.getEconomy().getEconomy().withdrawPlayer(this.getPlayer(), amount);
+        return Jobs.getEconomy().getEconomy().withdrawPlayer(this.getName(), amount);
     }
 }
