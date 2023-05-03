@@ -6,3 +6,4 @@
 src/main/resources/locale/messages_en.yml
 .classpath
 .project
+libs/CMILib1.0.2.2.jar
