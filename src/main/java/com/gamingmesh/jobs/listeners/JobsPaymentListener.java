@@ -26,7 +26,6 @@ import java.util.Map.Entry;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 
-import com.gamingmesh.jobs.config.GeneralConfigManager;
 import org.bukkit.Bukkit;
 import org.bukkit.GameMode;
 import org.bukkit.Location;
@@ -72,8 +71,8 @@ import org.bukkit.event.inventory.InventoryAction;
 import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.event.inventory.InventoryMoveItemEvent;
 import org.bukkit.event.inventory.InventoryType;
-import org.bukkit.event.inventory.PrepareAnvilEvent;
 import org.bukkit.event.inventory.InventoryType.SlotType;
+import org.bukkit.event.inventory.PrepareAnvilEvent;
 import org.bukkit.event.player.PlayerFishEvent;
 import org.bukkit.event.player.PlayerInteractEntityEvent;
 import org.bukkit.event.player.PlayerInteractEvent;
@@ -90,7 +89,6 @@ import org.bukkit.inventory.meta.PotionMeta;
 import org.bukkit.metadata.FixedMetadataValue;
 import org.bukkit.metadata.MetadataValue;
 import org.bukkit.permissions.PermissionAttachmentInfo;
-import org.checkerframework.checker.nullness.qual.Nullable;
 
 import com.bgsoftware.wildstacker.api.enums.StackSplit;
 import com.gamingmesh.jobs.ItemBoostManager;
@@ -132,7 +130,6 @@ import net.Zrips.CMILib.Entities.CMIEntityType;
 import net.Zrips.CMILib.Items.CMIItemStack;
 import net.Zrips.CMILib.Items.CMIMaterial;
 import net.Zrips.CMILib.Locale.LC;
-import net.Zrips.CMILib.Logs.CMIDebug;
 import net.Zrips.CMILib.Messages.CMIMessages;
 import net.Zrips.CMILib.Version.Version;
 
@@ -401,7 +398,7 @@ public final class JobsPaymentListener implements Listener {
         if (player == null)
             return;
 
-        if (Jobs.getGCManager().blockOwnershipRange > 0 && Util.getDistance(player.getLocation(), block.getLocation()) > Jobs.getGCManager().blockOwnershipRange)
+        if (Jobs.getGCManager().blockOwnershipRange > 0 && CMILocation.getDistance(player.getLocation(), block.getLocation()) > Jobs.getGCManager().blockOwnershipRange)
             return;
 
         if (!Jobs.getPermissionHandler().hasWorldPermission(player))
@@ -447,7 +444,7 @@ public final class JobsPaymentListener implements Listener {
         if (fp != null) {
             if (fp.getTime() > System.currentTimeMillis() && (fp.getInfo().getName().equalsIgnoreCase(bInfo.getName()) ||
                 fp.getInfo().getNameWithSub().equalsIgnoreCase(bInfo.getNameWithSub()))) {
-                Jobs.perform(fp.getPlayer(), fp.getInfo(), fp.getPayment(), fp.getJob());
+                Jobs.perform(fp.getPlayer(), fp.getInfo(), fp.getPayment(), fp.getJob(), block, null, null);
                 return;
             }
             Jobs.FASTPAYMENT.remove(player.getUniqueId());
@@ -488,7 +485,8 @@ public final class JobsPaymentListener implements Listener {
             return;
 
         // A tool should not trigger a BlockPlaceEvent (fixes stripping logs bug #940)
-        if (CMIMaterial.get(event.getItemInHand().getType()).isTool())
+        // Allow this to trigger with a hoe so players can get paid for farmland.
+        if (CMIMaterial.get(event.getItemInHand().getType()).isTool() && !event.getItemInHand().getType().toString().endsWith("_HOE"))
             return;
 
         Block block = event.getBlock();
@@ -1224,7 +1222,7 @@ public final class JobsPaymentListener implements Listener {
         if (bos.isDisabled(uuid, block.getLocation()))
             return;
 
-        if (Jobs.getGCManager().blockOwnershipRange > 0 && Util.getDistance(player.getLocation(), block.getLocation()) > Jobs.getGCManager().blockOwnershipRange)
+        if (Jobs.getGCManager().blockOwnershipRange > 0 && CMILocation.getDistance(player.getLocation(), block.getLocation()) > Jobs.getGCManager().blockOwnershipRange)
             return;
 
         if (!Jobs.getPermissionHandler().hasWorldPermission(player))
@@ -1974,7 +1972,7 @@ public final class JobsPaymentListener implements Listener {
 
         if (fp.getTime() > System.currentTimeMillis() - 50L && (fp.getInfo().getName().equalsIgnoreCase(bInfo.getName()) ||
             fp.getInfo().getNameWithSub().equalsIgnoreCase(bInfo.getNameWithSub()))) {
-            Jobs.perform(fp.getPlayer(), fp.getInfo(), fp.getPayment(), fp.getJob());
+            Jobs.perform(fp.getPlayer(), fp.getInfo(), fp.getPayment(), fp.getJob(), block, null, null);
             breakCache.put(CMILocation.toString(block.getLocation(), ":", true, true), uuid);
             fp.setTime(System.currentTimeMillis() + 45);
         }

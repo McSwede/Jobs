@@ -14,15 +14,14 @@ import net.Zrips.CMILib.Messages.CMIMessages;
 public class convert implements Cmd {
 
     @Override
-    public boolean perform(Jobs plugin, CommandSender sender, String[] args) {
+    public Boolean perform(Jobs plugin, CommandSender sender, String[] args) {
 	if (sender instanceof Player) {
 	    CMIMessages.sendMessage(sender, LC.info_FromConsole);
 	    return true;
 	}
 
 	if (args.length > 0) {
-	    Jobs.getCommandManager().sendUsage(sender, "convert");
-	    return true;
+	    return false;
 	}
 
 	String from = Jobs.getDBManager().getDbType() == DataBaseType.SqLite ? "SQLite" : "MySQL";
@@ -30,7 +29,7 @@ public class convert implements Cmd {
 
 	Bukkit.getScheduler().runTaskAsynchronously(plugin, () -> {
 	    Jobs.convertDatabase();
-	    Jobs.consoleMsg("&eDatabase was converted from &2" + from + " &eto &2" + to + "&e!");
+	    CMIMessages.consoleMessage("&eDatabase was converted from &2" + from + " &eto &2" + to + "&e!");
 	});
 
 	return true;
