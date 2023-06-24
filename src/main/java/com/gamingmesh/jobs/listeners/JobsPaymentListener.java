@@ -130,6 +130,7 @@ import net.Zrips.CMILib.Entities.CMIEntityType;
 import net.Zrips.CMILib.Items.CMIItemStack;
 import net.Zrips.CMILib.Items.CMIMaterial;
 import net.Zrips.CMILib.Locale.LC;
+import net.Zrips.CMILib.Logs.CMIDebug;
 import net.Zrips.CMILib.Messages.CMIMessages;
 import net.Zrips.CMILib.Version.Version;
 
@@ -447,6 +448,7 @@ public final class JobsPaymentListener implements Listener {
                 Jobs.perform(fp.getPlayer(), fp.getInfo(), fp.getPayment(), fp.getJob(), block, null, null);
                 return;
             }
+
             Jobs.FASTPAYMENT.remove(player.getUniqueId());
         }
         if (!payForItemDurabilityLoss(player))
@@ -1642,7 +1644,7 @@ public final class JobsPaymentListener implements Listener {
 
         Player player = (Player) human;
 
-        if (!player.isOnline() || event.getFoodLevel() <= player.getFoodLevel())
+        if (!player.isOnline() || event.getFoodLevel() <= player.getFoodLevel() || player.getFoodLevel() == 20)
             return;
 
         // check if in creative
@@ -1750,12 +1752,15 @@ public final class JobsPaymentListener implements Listener {
                     if (level.getLevel() == level.getMaximumLevel()) {
                         Jobs.action(jPlayer, new BlockCollectInfo(CMIMaterial.BONE_MEAL, ActionType.COLLECT), block);
                     }
-                } else if ((cmat == CMIMaterial.SWEET_BERRY_BUSH || cmat == CMIMaterial.CAVE_VINES_PLANT || cmat == CMIMaterial.CAVE_VINES) && hand != CMIMaterial.BONE_MEAL.getMaterial()) {
+                } else if ((cmat == CMIMaterial.SWEET_BERRY_BUSH || cmat == CMIMaterial.CAVE_VINES_PLANT || cmat == CMIMaterial.CAVE_VINES)) {
 
                     if (cmat == CMIMaterial.SWEET_BERRY_BUSH) {
                         Ageable age = (Ageable) block.getBlockData();
-                        if (age.getAge() >= 2)
+                        if (age.getAge() == 2 && hand != CMIMaterial.BONE_MEAL.getMaterial()) {
                             Jobs.action(jPlayer, new BlockCollectInfo(CMIMaterial.SWEET_BERRIES, ActionType.COLLECT, age.getAge()), block);
+                        } else if (age.getAge() == 3) {
+                            Jobs.action(jPlayer, new BlockCollectInfo(CMIMaterial.SWEET_BERRIES, ActionType.COLLECT, age.getAge()), block);
+                        }
                     } else {
                         org.bukkit.block.data.type.CaveVinesPlant caveVines = (org.bukkit.block.data.type.CaveVinesPlant) block.getBlockData();
                         if (caveVines.isBerries()) {
@@ -1833,8 +1838,9 @@ public final class JobsPaymentListener implements Listener {
             // either it's version 1.13+ and we're trying to strip a normal log like oak,
             // or it's 1.16+ and we're trying to strip a fungi like warped stem
             if ((Version.isCurrentEqualOrHigher(Version.v1_13_R1) && (block.getType().toString().endsWith("_LOG") || block.getType().toString().endsWith("_WOOD"))) ||
-                (Version.isCurrentEqualOrHigher(Version.v1_16_R1) && (block.getType().toString().endsWith("_STEM") || block.getType().toString().endsWith("_HYPHAE"))))
+                (Version.isCurrentEqualOrHigher(Version.v1_16_R1) && (block.getType().toString().endsWith("_STEM") || block.getType().toString().endsWith("_HYPHAE")))) {                
                 Bukkit.getScheduler().scheduleSyncDelayedTask(plugin, () -> Jobs.action(jPlayer, new BlockActionInfo(block, ActionType.STRIPLOGS), block), 1);
+            }
         }
     }
 
