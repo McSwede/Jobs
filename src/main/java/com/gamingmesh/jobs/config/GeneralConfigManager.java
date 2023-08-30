@@ -45,6 +45,7 @@ import net.Zrips.CMILib.Equations.Parser;
 import net.Zrips.CMILib.FileHandler.ConfigReader;
 import net.Zrips.CMILib.Items.CMIItemStack;
 import net.Zrips.CMILib.Items.CMIMaterial;
+import net.Zrips.CMILib.Logs.CMIDebug;
 import net.Zrips.CMILib.Messages.CMIMessages;
 import net.Zrips.CMILib.Version.Version;
 
@@ -110,11 +111,13 @@ public class GeneralConfigManager {
         DisabledWorldsUse, UseAsWhiteListWorldList, MythicMobsEnabled,
         LoggingUse, payForCombiningItems, BlastFurnacesReassign = false, SmokerReassign = false, payForStackedEntities, payForAbove = false,
         payForEachVTradeItem, allowEnchantingBoostedItems, bossBarAsync = false, preventShopItemEnchanting;
-    
+
     public boolean jobsshopenabled;
     public boolean DailyQuestsEnabled;
 
     public ItemStack guiInfoButton;
+    public ItemStack guiJoinButton;
+    public ItemStack guiLeaveButton;
     public int InfoButtonSlot = 9;
     public List<String> InfoButtonCommands = new ArrayList<String>();
 
@@ -272,11 +275,24 @@ public class GeneralConfigManager {
         // Load locale
         Jobs.getLanguageManager().load();
         // title settings
-        Jobs.getTitleManager().load();
+        try {
+            Jobs.getTitleManager().load();
+        } catch (Throwable e) {
+            e.printStackTrace();
+        }
         // restricted areas
-        Jobs.getRestrictedAreaManager().load();
+        try {
+            Jobs.getRestrictedAreaManager().load();
+        } catch (Throwable e) {
+            e.printStackTrace();
+        }
         // restricted blocks
-        Jobs.getRestrictedBlockManager().load();
+        try {
+            Jobs.getRestrictedBlockManager().load();
+        } catch (Throwable e) {
+            e.printStackTrace();
+        }
+
         // Item/Block/mobs name list
         Jobs.getNameTranslatorManager().load();
         // signs information
@@ -425,7 +441,7 @@ public class GeneralConfigManager {
 
         c.addComment("DailyQuests.Enabled", "Enables or disables daily quests");
         DailyQuestsEnabled = c.get("DailyQuests.Enabled", true);
-        
+
         c.addComment("DailyQuests.ResetTime", "Defines time in 24hour format when we want to give out new daily quests",
             "Any daily quests given before reset will be invalid and new ones will be given out");
         ResetTimeHour = c.get("DailyQuests.ResetTime.Hour", 4);
@@ -442,7 +458,7 @@ public class GeneralConfigManager {
             "For this to work, the player needs to get a new job for the timer to start.", "Counting in hours");
         jobExpiryTime = c.get("JobExpirationTime", 0);
 
-        c.addComment("max-jobs", "Maximum number of jobs a player can join.", "Use 0 for no maximum", "Keep in mind that jobs.max.[amount] will bypass this setting");
+        c.addComment("max-jobs", "Maximum number of jobs a player can join.", "Use -1 to disable limitations", "Keep in mind that jobs.max.[amount] will bypass this setting");
         maxJobs = c.get("max-jobs", 3);
 
         c.addComment("disable-payment-if-max-level-reached", "Disabling the payment if the user reached the maximum level of a job.");
@@ -456,7 +472,7 @@ public class GeneralConfigManager {
 
         c.addComment("prevent-shop-item-enchanting", "Prevent players to enchant items from the shop in the anvil with enchanted books");
         preventShopItemEnchanting = c.get("prevent-shop-item-enchanting", true);
-        
+
         c.addComment("jobs-shop-enabled", "Enables or disables jobs shop");
         jobsshopenabled = c.get("jobs-shop-enabled", true);
 
@@ -1091,7 +1107,15 @@ public class GeneralConfigManager {
         CMIItemStack item = CMILib.getInstance().getItemManager().getItem(c.get("JobsGUI.InfoButton.Material",
             "head:eyJ0ZXh0dXJlcyI6eyJTS0lOIjp7InVybCI6Imh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvMjcwNWZkOTRhMGM0MzE5MjdmYjRlNjM5YjBmY2ZiNDk3MTdlNDEyMjg1YTAyYjQzOWUwMTEyZGEyMmIyZTJlYyJ9fX0="));
         guiInfoButton = item.getCMIType() == CMIMaterial.NONE ? CMIMaterial.ARROW.newItemStack() : item.getItemStack();
-
+        
+        item = CMIItemStack.deserialize(c.get("JobsGUI.JoinButton.Material",
+            "head:eyJ0ZXh0dXJlcyI6eyJTS0lOIjp7InVybCI6Imh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvZmZlYzNkMjVhZTBkMTQ3YzM0MmM0NTM3MGUwZTQzMzAwYTRlNDhhNWI0M2Y5YmI4NThiYWJmZjc1NjE0NGRhYyJ9fX0="));        
+        guiJoinButton = item == null || item.getCMIType() == CMIMaterial.NONE ? CMIMaterial.GREEN_STAINED_GLASS_PANE.newItemStack() : item.getItemStack();
+        
+        item = CMIItemStack.deserialize(c.get("JobsGUI.LeaveButton.Material",
+            "head:eyJ0ZXh0dXJlcyI6eyJTS0lOIjp7InVybCI6Imh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvYzY1ZjNiYWUwZDIwM2JhMTZmZTFkYzNkMTMwN2E4NmE2MzhiZTkyNDQ3MWYyM2U4MmFiZDlkNzhmOGEzZmNhIn19fQ=="));        
+        guiLeaveButton = item == null || item.getCMIType() == CMIMaterial.NONE ? CMIMaterial.RED_STAINED_GLASS_PANE.newItemStack() : item.getItemStack();
+        
         c.addComment("JobsGUI.InfoButton.Commands", "closeinv! can be used to close players inventory when you click this icon");
         InfoButtonCommands = c.get("JobsGUI.InfoButton.Commands", Arrays.asList("closeinv!"));
 

@@ -8,6 +8,7 @@ import java.util.List;
 
 import com.gamingmesh.jobs.Jobs;
 import com.gamingmesh.jobs.container.CurrencyType;
+import com.gamingmesh.jobs.i18n.Language;
 import com.gamingmesh.jobs.stuff.Util;
 
 import net.Zrips.CMILib.FileHandler.ConfigReader;
@@ -98,6 +99,10 @@ public class LanguageManager {
             c.get("general.info.blocks.smoker", "Smoker");
             c.get("general.info.blocks.blastfurnace", "Blast furnace");
             c.get("general.info.blocks.brewingstand", "Brewing stand");
+            
+            c.get("general.info.join", "&eClick to join job");
+            c.get("general.info.leave", "&cClick to leave job");
+            
             c.get("general.admin.error", "&cThere was an error in the command.");
             c.get("general.admin.success", "&eYour command has been performed.");
             c.get("general.error.noHelpPage", "&cThere is no help page by this number!");
@@ -111,6 +116,7 @@ public class LanguageManager {
             c.get("general.error.reenabledBlock", "&eReenabled ownership");
             c.get("general.error.noRegistration", "&cYou've reached max [block] count!");
             c.get("general.error.blockDisabled", "&6Payments from &e[type] &6got disabled. &2[location]");
+            
 
             c.get("command.help.output.cmdUsage", "&2Usage: &7[command]");
             c.get("command.help.output.label", "Jobs");
@@ -132,7 +138,10 @@ public class LanguageManager {
             c.get("command.boost.output.boostadded", "&aBoost of &e%boost% &aadded for &e%jobname%!");
             c.get("command.boost.output.infostats", "&c-----> &a%type% rate x%boost% enabled&c <-------");
             c.get("command.boost.output.boostStats", "&6%payments% &e%jobname%");
-
+            
+            c.get("command.boost.output.jobsboostreset", "&aBoost of &e%boost% &aadded for &e%jobname%!");
+            c.get("command.boost.output.jobstypeboostreset", "&aBoost of &e%boost% &aadded for &e%jobname%!");
+            
             c.get("command.schedule.help.info", "Enables the given scheduler");
             c.get("command.schedule.help.args", "enable [scheduleName] [untilTime]");
             Jobs.getGCManager().getCommandArgs().put("schedule", Arrays.asList("enable", "[scheduleName]", "[untilTime]"));
@@ -406,6 +415,8 @@ public class LanguageManager {
             c.get("command.info.output.collect.none", "%jobname% does not get money for collecting blocks.");
             c.get("command.info.output.bake.info", "&eBake");
             c.get("command.info.output.bake.none", "%jobname% does not get money for cooking foods.");
+            c.get("command.info.output.bucket.info", "&eBucket");
+            c.get("command.info.output.bucket.none", "%jobname% does not get money for bucketing.");
 
             c.get("command.playerinfo.help.info", "Show how much each job is getting paid and for what on another player.");
             c.get("command.playerinfo.help.args", "[playername] [jobname] [action]");
@@ -580,7 +591,7 @@ public class LanguageManager {
             c.get("command.transfer.help.info", "Transfer a player's job from an old job to a new job.");
             c.get("command.transfer.help.args", "[playername] [oldjob] [newjob]");
             Jobs.getGCManager().getCommandArgs().put("transfer", Arrays.asList("[playername]", "[oldjob]", "[newjob]"));
-            c.get("command.transfer.output.target", "You have been transferred from %oldjobname% to %newjobname%.");
+            c.get("command.transfer.output.target", "&fYou have been transferred from %oldjobname% &fto %newjobname%.");
 
             c.get("command.promote.help.info", "Promote the player X levels in a job.");
             c.get("command.promote.help.args", "[playername] [jobname] [levels] (-cmd)");
@@ -635,7 +646,12 @@ public class LanguageManager {
             c.get("command.toggle.output.paid.points", "&6[points] points");
             c.get("command.toggle.output.on", "&aToggled: &aON");
             c.get("command.toggle.output.off", "&aToggled: &4OFF");
-
+            
+            c.get("command.howmuch.help.info", "Check potential payment by target entity or block");
+            c.get("command.howmuch.help.args", "");
+            c.get("command.version.output.payment", "&e[job] &f[action] &7[target] [exp] [money] [points]");
+            c.get("command.version.output.nopayment", "&7Can't find any payments ([target])");
+            
             c.get("command.version.help.info", "Plugin version information");
             c.get("command.version.help.args", "");
             c.get("command.version.output.jobsVersion", "&eJobs: &6[version]");

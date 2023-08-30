@@ -43,10 +43,13 @@ import com.gamingmesh.jobs.economy.PaymentData;
 
 import net.Zrips.CMILib.ActionBar.CMIActionBar;
 import net.Zrips.CMILib.Colors.CMIChatColor;
+import net.Zrips.CMILib.Container.CMINumber;
 import net.Zrips.CMILib.Equations.Parser;
 import net.Zrips.CMILib.Items.CMIMaterial;
 import net.Zrips.CMILib.Logs.CMIDebug;
 import net.Zrips.CMILib.Time.CMITimeManager;
+import net.Zrips.CMILib.Version.Schedulers.CMIScheduler;
+import net.Zrips.CMILib.Version.Schedulers.CMITask;
 
 public class JobsPlayer {
 
@@ -440,7 +443,7 @@ public class JobsPlayer {
         Parser eq = Jobs.getGCManager().getLimit(type).getMaxEquation();
         eq.setVariable("totallevel", getTotalLevels());
 
-        maxJobsEquation = Jobs.getPlayerManager().getMaxJobs(this);
+        maxJobsEquation = CMINumber.clamp(Jobs.getPlayerManager().getMaxJobs(this), 0, 9999);
         limits.put(type, (int) eq.getValue());
         setSaved(false);
     }
@@ -1347,14 +1350,14 @@ public class JobsPlayer {
         this.doneQuests = doneQuests;
     }
 
-    private Integer questSignUpdateShed;
+    private CMITask questSignUpdateShed;
 
     public void addDoneQuest(final Job job) {
         doneQuests++;
         setSaved(false);
 
         if (questSignUpdateShed == null) {
-            questSignUpdateShed = plugin.getServer().getScheduler().scheduleSyncDelayedTask(plugin, () -> {
+            questSignUpdateShed = CMIScheduler.get().runTaskLater(() -> {
                 Jobs.getSignUtil().signUpdate(job, SignTopType.questtoplist);
                 questSignUpdateShed = null;
             }, Jobs.getGCManager().getSavePeriod() * 60 * 20L);

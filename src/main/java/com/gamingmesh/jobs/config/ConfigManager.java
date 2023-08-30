@@ -28,7 +28,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.TreeMap;
 
-import org.apache.commons.lang.StringEscapeUtils;
+import org.apache.commons.lang3.StringEscapeUtils;
 import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.configuration.file.YamlConfiguration;
@@ -617,6 +617,7 @@ public class ConfigManager {
         case BREW:
         case BREAK:
         case STRIPLOGS:
+        case BUCKET:
         case COLLECT:
             material = CMIMaterial.get(myKey + (subType));
 
@@ -723,7 +724,7 @@ public class ConfigManager {
             }
 
             id = material.getId();
-        } else if (actionType == ActionType.KILL || actionType == ActionType.TAME || actionType == ActionType.BREED || actionType == ActionType.MILK) {
+        } else if (actionType == ActionType.KILL || actionType == ActionType.TAME || actionType == ActionType.BREED || actionType == ActionType.MILK || actionType == ActionType.BUCKET) {
             // check entities
             CMIEntityType entity = CMIEntityType.getByName(myKey);
 
@@ -1571,6 +1572,8 @@ public class ConfigManager {
                 return job;
             }
         }
+        
+        
 
         return null;
     }

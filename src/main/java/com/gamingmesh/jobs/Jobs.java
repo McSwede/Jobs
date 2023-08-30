@@ -94,9 +94,11 @@ import com.gamingmesh.jobs.economy.PaymentData;
 import com.gamingmesh.jobs.hooks.HookManager;
 import com.gamingmesh.jobs.i18n.Language;
 import com.gamingmesh.jobs.listeners.JobsListener;
-import com.gamingmesh.jobs.listeners.JobsPayment14Listener;
+import com.gamingmesh.jobs.listeners.JobsPayment1_14Listener;
 import com.gamingmesh.jobs.listeners.JobsPaymentListener;
 import com.gamingmesh.jobs.listeners.PistonProtectionListener;
+import com.gamingmesh.jobs.listeners.JobsPayment1_16Listener;
+import com.gamingmesh.jobs.listeners.PlayerSignEdit1_20Listeners;
 import com.gamingmesh.jobs.selection.SelectionManager;
 import com.gamingmesh.jobs.stuff.Loging;
 import com.gamingmesh.jobs.stuff.TabComplete;
@@ -116,6 +118,7 @@ import net.Zrips.CMILib.Locale.LC;
 import net.Zrips.CMILib.Messages.CMIMessages;
 import net.Zrips.CMILib.RawMessages.RawMessage;
 import net.Zrips.CMILib.Version.Version;
+import net.Zrips.CMILib.Version.Schedulers.CMIScheduler;
 
 public final class Jobs extends JavaPlugin {
 
@@ -153,7 +156,7 @@ public final class Jobs extends JavaPlugin {
     private GuiManager guiManager;
 
     private static JobsDAO dao;
-    private static List<Job> jobs;
+    private static List<Job> jobs = new ArrayList<Job>();
     private static Job noneJob;
     private static Map<Job, Integer> usedSlots = new WeakHashMap<>();
 
@@ -763,7 +766,7 @@ public final class Jobs extends JavaPlugin {
             }
 
             // register economy
-            getServer().getScheduler().runTask(this, new HookEconomyTask(this));
+            CMIScheduler.get().runTask(new HookEconomyTask(this));
 
             dao.loadBlockProtection();
             getExploreManager().load();
@@ -791,9 +794,15 @@ public final class Jobs extends JavaPlugin {
         pm.registerEvents(new JobsListener(getInstance()), getInstance());
         pm.registerEvents(new JobsPaymentListener(getInstance()), getInstance());
         if (Version.isCurrentEqualOrHigher(Version.v1_14_R1)) {
-            pm.registerEvents(new JobsPayment14Listener(), getInstance());
+            pm.registerEvents(new JobsPayment1_14Listener(), getInstance());
+        }
+        if (Version.isCurrentEqualOrHigher(Version.v1_16_R3)) {
+            pm.registerEvents(new JobsPayment1_16Listener(), getInstance());
         }
 
+        if (Version.isCurrentEqualOrHigher(Version.v1_20_R1)) {
+            pm.registerEvents(new PlayerSignEdit1_20Listeners(), getInstance());
+        }
         if (getGCManager().useBlockProtection) {
             pm.registerEvents(new PistonProtectionListener(), getInstance());
         }
