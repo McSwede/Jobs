@@ -167,6 +167,8 @@ public final class Jobs extends JavaPlugin {
 
     private static boolean hasLimitedItems = false;
 
+    public static boolean fullyLoaded = false;
+
     private static final int MAX_ENTRIES = 20;
     public static final LinkedHashMap<UUID, FastPayment> FASTPAYMENT = new LinkedHashMap<UUID, FastPayment>(MAX_ENTRIES + 1, .75F, false) {
         protected boolean removeEldestEntry(Map.Entry<UUID, FastPayment> eldest) {
@@ -362,18 +364,14 @@ public final class Jobs extends JavaPlugin {
      * @return the schedule manager
      */
     public static ScheduleManager getScheduleManager() {
-        if (scheduleManager == null) {
+        if (scheduleManager == null)
             scheduleManager = new ScheduleManager(getInstance());
-        }
-
         return scheduleManager;
     }
 
     public static NameTranslatorManager getNameTranslatorManager() {
-        if (nameTranslatorManager == null) {
+        if (nameTranslatorManager == null)
             nameTranslatorManager = new NameTranslatorManager();
-        }
-
         return nameTranslatorManager;
     }
 
@@ -384,9 +382,8 @@ public final class Jobs extends JavaPlugin {
     }
 
     public static JobsCommands getCommandManager() {
-        if (cManager == null) {
+        if (cManager == null)
             cManager = new JobsCommands(getInstance());
-        }
         return cManager;
     }
 
@@ -413,10 +410,8 @@ public final class Jobs extends JavaPlugin {
      * @return the sign manager
      */
     public static SignUtil getSignUtil() {
-        if (signManager == null) {
+        if (signManager == null)
             signManager = new SignUtil(getInstance());
-        }
-
         return signManager;
     }
 
@@ -591,7 +586,8 @@ public final class Jobs extends JavaPlugin {
             getPlayerManager().clearMaps();
             getPlayerManager().clearCache();
 
-            dao.saveExplore();
+            if (Jobs.getGeneralConfigManager().ExploreSaveIntoDatabase)
+                dao.saveExplore();
 //    Do we really need to convert Block protection?
 //    Jobs.getJobsDAO().saveBlockProtection();
         } catch (SQLException e) {
@@ -779,7 +775,7 @@ public final class Jobs extends JavaPlugin {
             System.out.println("There was some issues when starting plugin. Please contact dev about this. Plugin will be disabled.");
             setEnabled(false);
         }
-
+        fullyLoaded = true;
         CMIMessages.consoleMessage(suffix);
     }
 
@@ -895,9 +891,8 @@ public final class Jobs extends JavaPlugin {
         CMIMessages.consoleMessage(prefix);
         HandlerList.unregisterAll(this);
 
-        if (dao != null) {
+        if (dao != null && Jobs.getGeneralConfigManager().ExploreSaveIntoDatabase)
             dao.saveExplore();
-        }
 
         blockOwnerShipsMaterial.values().forEach(BlockOwnerShip::save);
         ToggleBarHandling.save();
