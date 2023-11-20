@@ -95,9 +95,9 @@ import com.gamingmesh.jobs.hooks.HookManager;
 import com.gamingmesh.jobs.i18n.Language;
 import com.gamingmesh.jobs.listeners.JobsListener;
 import com.gamingmesh.jobs.listeners.JobsPayment1_14Listener;
+import com.gamingmesh.jobs.listeners.JobsPayment1_16Listener;
 import com.gamingmesh.jobs.listeners.JobsPaymentListener;
 import com.gamingmesh.jobs.listeners.PistonProtectionListener;
-import com.gamingmesh.jobs.listeners.JobsPayment1_16Listener;
 import com.gamingmesh.jobs.listeners.PlayerSignEdit1_20Listeners;
 import com.gamingmesh.jobs.selection.SelectionManager;
 import com.gamingmesh.jobs.stuff.Loging;
@@ -119,6 +119,7 @@ import net.Zrips.CMILib.Messages.CMIMessages;
 import net.Zrips.CMILib.RawMessages.RawMessage;
 import net.Zrips.CMILib.Version.Version;
 import net.Zrips.CMILib.Version.Schedulers.CMIScheduler;
+import net.milkbowl.vault.permission.Permission;
 
 public final class Jobs extends JavaPlugin {
 
@@ -142,6 +143,8 @@ public final class Jobs extends JavaPlugin {
     private static GeneralConfigManager gConfigManager;
 
     private static BufferedEconomy economy;
+
+    private static Permission vaultPermission;
     private static PermissionHandler permissionHandler;
     private static PermissionManager permissionManager;
 
@@ -691,12 +694,20 @@ public final class Jobs extends JavaPlugin {
         economy = new BufferedEconomy(getInstance(), eco);
     }
 
+    public static void setVaultPermission(Permission permission) {
+        vaultPermission = permission;
+    }
+
     /**
      * Gets the economy handler
      * @return the economy handler
      */
     public static BufferedEconomy getEconomy() {
         return economy;
+    }
+
+    public static Permission getVaultPermission() {
+        return vaultPermission;
     }
 
     /**
@@ -761,8 +772,14 @@ public final class Jobs extends JavaPlugin {
                 complement = new Complement1();
             }
 
-            // register economy
-            CMIScheduler.get().runTask(new HookEconomyTask(this));
+            if (HookVault.isVaultEnable()) {
+                // register economy
+                CMIScheduler.get().runTask(() -> new HookEconomyTask(net.milkbowl.vault.economy.Economy.class));
+
+                // register permission from vault
+                CMIScheduler.get().runTask(() -> new HookPermissionTask(Permission.class));
+            }
+
 
             dao.loadBlockProtection();
             getExploreManager().load();
@@ -789,16 +806,19 @@ public final class Jobs extends JavaPlugin {
 
         pm.registerEvents(new JobsListener(getInstance()), getInstance());
         pm.registerEvents(new JobsPaymentListener(getInstance()), getInstance());
+        
         if (Version.isCurrentEqualOrHigher(Version.v1_14_R1)) {
             pm.registerEvents(new JobsPayment1_14Listener(), getInstance());
         }
+        
         if (Version.isCurrentEqualOrHigher(Version.v1_16_R3)) {
             pm.registerEvents(new JobsPayment1_16Listener(), getInstance());
         }
 
         if (Version.isCurrentEqualOrHigher(Version.v1_20_R1)) {
-            pm.registerEvents(new PlayerSignEdit1_20Listeners(), getInstance());
+            pm.registerEvents(new PlayerSignEdit1_20Listeners(), getInstance());         
         }
+        
         if (getGCManager().useBlockProtection) {
             pm.registerEvents(new PistonProtectionListener(), getInstance());
         }
@@ -1008,7 +1028,7 @@ public final class Jobs extends JavaPlugin {
 
         // no job
         if (numjobs == 0) {
-            if (noneJob == null || noneJob.isWorldBlackListed(block) || noneJob.isWorldBlackListed(block, ent) || noneJob.isWorldBlackListed(victim))
+            if (noneJob == null || noneJob.isWorldBlackListed(block, ent, victim))
                 return;
 
             JobInfo jobinfo = noneJob.getJobInfo(info, 1);
@@ -1106,8 +1126,7 @@ public final class Jobs extends JavaPlugin {
         } else {
             List<Job> expiredJobs = new ArrayList<>();
             for (JobProgression prog : progression) {
-                if (prog.getJob().isWorldBlackListed(block) || prog.getJob().isWorldBlackListed(block, ent)
-                    || prog.getJob().isWorldBlackListed(victim))
+                if (prog.getJob().isWorldBlackListed(block, ent, victim))
                     continue;
 
                 if (jPlayer.isLeftTimeEnded(prog.getJob())) {
@@ -1422,7 +1441,7 @@ public final class Jobs extends JavaPlugin {
     public static void perform(JobsPlayer jPlayer, ActionInfo info, BufferedPayment payment, Job job, Block block, Entity ent, LivingEntity victim) {
         double expPayment = payment.get(CurrencyType.EXP);
 
-        JobsPrePaymentEvent jobsPrePaymentEvent = new JobsPrePaymentEvent(jPlayer.getPlayer(), noneJob, payment.get(CurrencyType.MONEY),
+        JobsPrePaymentEvent jobsPrePaymentEvent = new JobsPrePaymentEvent(jPlayer.getPlayer(), job, payment.get(CurrencyType.MONEY),
             payment.get(CurrencyType.POINTS), block, ent, victim, info);
         Bukkit.getServer().getPluginManager().callEvent(jobsPrePaymentEvent);
         // If event is canceled, don't do anything

@@ -1,21 +1,24 @@
 package com.gamingmesh.jobs.commands.list;
 
-import java.util.ArrayList;
-import java.util.List;
-
-import org.bukkit.command.CommandSender;
-import org.bukkit.entity.Player;
-import org.bukkit.scoreboard.DisplaySlot;
-
 import com.gamingmesh.jobs.Jobs;
 import com.gamingmesh.jobs.commands.Cmd;
 import com.gamingmesh.jobs.container.TopList;
 import com.gamingmesh.jobs.i18n.Language;
-
 import net.Zrips.CMILib.Container.PageInfo;
 import net.Zrips.CMILib.Locale.LC;
+import net.Zrips.CMILib.Logs.CMIDebug;
 import net.Zrips.CMILib.Messages.CMIMessages;
 import net.Zrips.CMILib.Scoreboards.CMIScoreboard;
+import net.Zrips.CMILib.Version.Schedulers.CMIScheduler;
+
+import org.bukkit.Bukkit;
+import org.bukkit.command.CommandSender;
+import org.bukkit.entity.Player;
+import org.bukkit.scoreboard.DisplaySlot;
+
+import java.util.ArrayList;
+import java.util.List;
+import java.util.stream.Collectors;
 
 public class gtop implements Cmd {
 
@@ -52,10 +55,17 @@ public class gtop implements Cmd {
         int amount = Jobs.getGCManager().JobsTopAmount;
         PageInfo pi = new PageInfo(amount, Jobs.getPlayerManager().getPlayersCache().size(), page);
 
-        List<TopList> FullList = Jobs.getJobsDAO().getGlobalTopList(pi.getStart());
+        CMIScheduler.runTaskAsynchronously(() -> showGlobalTop(sender, pi, amount));
+        return true;
+    }
+
+    private static void showGlobalTop(CommandSender sender, PageInfo pi, int amount) {
+        Player player = (Player) sender;
+        List<TopList> FullList = Jobs.getJobsDAO().getGlobalTopList(pi.getStart())
+            .stream().filter(gtop::hasToBeSeenInGlobalTop).collect(Collectors.toList());
         if (FullList.isEmpty()) {
             Language.sendMessage(sender, "command.gtop.error.nojob");
-            return true;
+            return;
         }
 
         if (!Jobs.getGCManager().ShowToplistInScoreboard) {
@@ -88,11 +98,20 @@ public class gtop implements Cmd {
                     "%level%", one.getLevel()));
                 ++i;
             }
-
+            
             CMIScoreboard.show(player, Jobs.getLanguage().getMessage("scoreboard.gtopline"), ls, Jobs.getGCManager().ToplistInScoreboardInterval);
         }
 
         pi.autoPagination(sender, "jobs gtop");
-        return true;
+    }
+
+    private static boolean hasToBeSeenInGlobalTop(TopList topList) {
+        Player player = topList.getPlayerInfo().getJobsPlayer().getPlayer();
+        if (player != null)
+            return !player.isPermissionSet("jobs.hidegtop");
+        return !Jobs.getVaultPermission().playerHas(
+            null,
+            Bukkit.getOfflinePlayer(topList.getPlayerInfo().getUuid()),
+            "jobs.hidegtop");
     }
 }

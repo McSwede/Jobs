@@ -38,6 +38,7 @@ import org.bukkit.inventory.meta.EnchantmentStorageMeta;
 import com.gamingmesh.jobs.ItemBoostManager;
 import com.gamingmesh.jobs.Jobs;
 import com.gamingmesh.jobs.CMILib.CMIEnchantment;
+import com.gamingmesh.jobs.Gui.GuiItem;
 import com.gamingmesh.jobs.container.ActionType;
 import com.gamingmesh.jobs.container.BoostMultiplier;
 import com.gamingmesh.jobs.container.CurrencyType;
@@ -51,14 +52,19 @@ import com.gamingmesh.jobs.container.JobLimitedItems;
 import com.gamingmesh.jobs.container.JobPermission;
 import com.gamingmesh.jobs.container.Quest;
 import com.gamingmesh.jobs.container.QuestObjective;
+import com.gamingmesh.jobs.listeners.JobsListener;
 import com.gamingmesh.jobs.stuff.Util;
 
 import net.Zrips.CMILib.Colors.CMIChatColor;
+import net.Zrips.CMILib.Container.CMIList;
 import net.Zrips.CMILib.Entities.CMIEntityType;
 import net.Zrips.CMILib.Equations.ParseError;
 import net.Zrips.CMILib.Equations.Parser;
 import net.Zrips.CMILib.FileHandler.ConfigReader;
+import net.Zrips.CMILib.Items.CMIAsyncHead;
+import net.Zrips.CMILib.Items.CMIItemStack;
 import net.Zrips.CMILib.Items.CMIMaterial;
+import net.Zrips.CMILib.Logs.CMIDebug;
 import net.Zrips.CMILib.Messages.CMIMessages;
 import net.Zrips.CMILib.Version.Version;
 
@@ -197,17 +203,10 @@ public class ConfigManager {
         cfg.addComment(pt + ".rejoinCooldown", "Defines how often in seconds player can rejoin this job. Can be bypassed with jobs.rejoinbypass");
         cfg.get(pt + ".rejoinCooldown", 10);
 
-        cfg.addComment(pt + ".Gui", "GUI icon information when using GUI function");
-        cfg.addComment(pt + ".Gui.Item", "You can use the custom player head:",
-            "Item: player_head",
-            "  CustomSkull: Notch",
-            "",
-            "Name of the material");
-        cfg.get(pt + ".Gui.Item", "LOG:2");
+        cfg.addComment(pt + ".Gui", "GUI icon information when using GUI function", "More information on usage at https://www.zrips.net/cmi/commands/icwol/");
+        cfg.get(pt + ".Gui.ItemStack", "oaklog;DURABILITY:1;hideenchants");
         cfg.addComment(pt + ".Gui.slot", "Slot number to show the item in the specified row");
         cfg.get(pt + ".Gui.slot", 5);
-        cfg.addComment(pt + ".Gui.Enchantments", "Enchants of the item");
-        cfg.get(pt + ".Gui.Enchantments", Arrays.asList("DURABILITY:1"));
 
         cfg.addComment(pt + ".maxDailyQuests",
             "Defines maximum amount of daily quests player can have from THIS job",
@@ -474,18 +473,11 @@ public class ConfigManager {
 
         cfg.addComment(pt + ".limitedItems", "Limit item use to jobs level");
         cfg.addComment(pt + ".limitedItems.firstOne", "Just name, don't have any impact");
-        cfg.addComment(pt + ".limitedItems.firstOne.id", "Tool/Weapon id. Works for any interact action.");
-        cfg.get(pt + ".limitedItems.firstOne.id", "DIAMOND_PICKAXE");
+
+        cfg.addComment(pt + ".limitedItems.firstOne.ItemStack", "Tool/Weapon data. More information on usage www.zrips.net/cmi/commands/icwol/");
+        cfg.get(pt + ".limitedItems.firstOne.ItemStack", "DIAMOND_PICKAXE;n{&8Miner_Pickaxe};l{&eBobs_pick\\n&710%_bonus_XP};DAMAGE_ALL:1,FIRE_ASPECT:1");
         cfg.addComment(pt + ".limitedItems.firstOne.level", "Level of this job player can start using this item");
         cfg.get(pt + ".limitedItems.firstOne.level", 5);
-        cfg.addComment(pt + ".limitedItems.firstOne.name", "(optional) Items name, option to use color codes");
-        cfg.get(pt + ".limitedItems.firstOne.name", "&8Miner Pickaxe");
-        cfg.addComment(pt + ".limitedItems.firstOne.lore", "(optional) Item lore, again can come with color codes");
-        cfg.get(pt + ".limitedItems.firstOne.lore", Arrays.asList("&eBobs pick", "&710% bonus XP"));
-        cfg.addComment(pt + ".limitedItems.firstOne.enchants",
-            "(optional) Item enchantments, all enchantment names can be found https://hub.spigotmc.org/javadocs/spigot/org/bukkit/enchantments/Enchantment.html",
-            "enchant level can increase with jobs level to give best RPG experience");
-        cfg.get(pt + ".limitedItems.firstOne.enchants", Arrays.asList("DAMAGE_ALL=1", "FIRE_ASPECT=1"));
 
         cfg.save();
     }
@@ -1017,65 +1009,55 @@ public class ConfigManager {
         return result.toString();
     }
 
+    boolean informedGUI = false;
+    boolean informedLimited = false;
+
     private Job loadJobs(ConfigurationSection jobsSection) {
         java.util.logging.Logger log = Jobs.getPluginLogger();
 
-        for (String jobKey : jobsSection.getKeys(false)) {
+        for (String jobConfigName : jobsSection.getKeys(false)) {
             // Ignore example job
-            if (jobKey.equalsIgnoreCase(EXAMPLEJOBINTERNALNAME))
+            if (jobConfigName.equalsIgnoreCase(EXAMPLEJOBINTERNALNAME))
                 continue;
 
             // Translating unicode
-            jobKey = escapeUnicode(jobKey);
+            jobConfigName = escapeUnicode(jobConfigName);
 
-            ConfigurationSection jobSection = jobsSection.getConfigurationSection(jobKey);
+            ConfigurationSection jobSection = jobsSection.getConfigurationSection(jobConfigName);
             if (jobSection == null)
                 continue;
 
+            Job job = new Job(jobConfigName)
+                .setDisplayName(jobSection.getString("displayName"));
+
             String jobFullName = jobSection.getString("fullname");
             if (jobFullName == null) {
-                log.warning("Job " + jobKey + " has an invalid fullname property. Skipping job!");
+                log.warning("Job " + jobConfigName + " has an invalid fullname property. Skipping job!");
                 continue;
             }
-
             // Translating unicode
-            jobFullName = escapeUnicode(jobFullName);
-
-            int maxLevel = jobSection.getInt("max-level");
-            if (maxLevel < 0)
-                maxLevel = 0;
-
-            int vipmaxLevel = jobSection.getInt("vip-max-level");
-            if (vipmaxLevel < 0)
-                vipmaxLevel = 0;
-
-            Integer maxSlots = jobSection.getInt("slots");
-            if (maxSlots.intValue() <= 0)
-                maxSlots = null;
-
-            Long rejoinCd = jobSection.getLong("rejoinCooldown");
-            if (rejoinCd < 0L) {
-                rejoinCd = 0L;
-            } else {
-                rejoinCd *= 1000L;
-            }
+            job.setJobFullName(escapeUnicode(jobFullName));
 
             String jobShortName = jobSection.getString("shortname");
             if (jobShortName == null) {
-                log.warning("Job " + jobKey + " is missing the shortname property. Skipping job!");
+                log.warning("Job " + jobConfigName + " is missing the shortname property. Skipping job!");
                 continue;
             }
+            job.setShortName(jobShortName);
+            job.setMaxLevel(jobSection.getInt("max-level"));
+            job.setVipMaxLevel(jobSection.getInt("vip-max-level"));
+            job.setMaxSlots(jobSection.getInt("slots"));
+            job.setRejoinCd(jobSection.getLong("rejoinCooldown", 0L) * 1000L);
 
-            String description = CMIChatColor.translate(jobSection.getString("description", ""));
+            job.setDescription(CMIChatColor.translate(jobSection.getString("description", "")));
 
             List<String> fDescription = jobSection.getStringList("FullDescription");
-
             if (jobSection.isString("FullDescription"))
                 fDescription.add(jobSection.getString("FullDescription"));
-
             for (int i = 0; i < fDescription.size(); i++) {
                 fDescription.set(i, CMIChatColor.translate(fDescription.get(i)));
             }
+            job.setFullDescription(fDescription);
 
             CMIChatColor color = CMIChatColor.WHITE;
             String c = jobSection.getString("ChatColour");
@@ -1087,23 +1069,26 @@ public class ConfigManager {
 
                 if (color == null) {
                     color = CMIChatColor.WHITE;
-                    log.warning("Job " + jobKey + " has an invalid ChatColour property. Defaulting to WHITE!");
+                    log.warning("Job " + jobConfigName + " has an invalid ChatColour property. Defaulting to WHITE!");
                 }
             }
+            job.setChatColor(color);
 
             String bossbar = jobSection.getString("BossBarColour");
             if (bossbar != null && bossbar.isEmpty()) {
                 bossbar = "GREEN";
-                log.warning("Job " + jobKey + " has an invalid BossBarColour property.");
+                log.warning("Job " + jobConfigName + " has an invalid BossBarColour property.");
             }
+            job.setBossbar(bossbar);
 
             DisplayMethod displayMethod = DisplayMethod.matchMethod(jobSection.getString("chat-display", ""));
             if (displayMethod == null) {
-                log.warning("Job " + jobKey + " has an invalid chat-display property. Defaulting to None!");
+                log.warning("Job " + jobConfigName + " has an invalid chat-display property. Defaulting to None!");
                 displayMethod = DisplayMethod.NONE;
             }
+            job.setDisplayMethod(displayMethod);
 
-            boolean isNoneJob = jobKey.equalsIgnoreCase("none");
+            boolean isNoneJob = jobConfigName.equalsIgnoreCase("none");
 
             Parser maxExpEquation;
             String maxExpEquationInput = isNoneJob ? "0" : jobSection.getString("leveling-progression-equation", "0");
@@ -1114,9 +1099,10 @@ public class ConfigManager {
                 maxExpEquation.setVariable("maxjobs", 2);
                 maxExpEquation.setVariable("joblevel", 1);
             } catch (ParseError e) {
-                log.warning("Job " + jobKey + " has an invalid leveling-progression-equation property. Skipping job!");
+                log.warning("Job " + jobConfigName + " has an invalid leveling-progression-equation property. Skipping job!");
                 continue;
             }
+            job.setMaxExpEquation(maxExpEquation);
 
             Parser incomeEquation = new Parser("0");
             String incomeEquationInput = jobSection.getString("income-progression-equation");
@@ -1129,10 +1115,11 @@ public class ConfigManager {
                     incomeEquation.setVariable("joblevel", 1);
                     incomeEquation.setVariable("baseincome", 1);
                 } catch (ParseError e) {
-                    log.warning("Job " + jobKey + " has an invalid income-progression-equation property. Skipping job!");
+                    log.warning("Job " + jobConfigName + " has an invalid income-progression-equation property. Skipping job!");
                     continue;
                 }
             }
+            job.setMoneyEquation(incomeEquation);
 
             Parser expEquation;
             String expEquationInput = isNoneJob ? "0" : jobSection.getString("experience-progression-equation", "0");
@@ -1144,9 +1131,10 @@ public class ConfigManager {
                 expEquation.setVariable("joblevel", 1);
                 expEquation.setVariable("baseexperience", 1);
             } catch (ParseError e) {
-                log.warning("Job " + jobKey + " has an invalid experience-progression-equation property. Skipping job!");
+                log.warning("Job " + jobConfigName + " has an invalid experience-progression-equation property. Skipping job!");
                 continue;
             }
+            job.setXpEquation(expEquation);
 
             Parser pointsEquation = new Parser("0");
             String pointsEquationInput = jobSection.getString("points-progression-equation");
@@ -1159,19 +1147,35 @@ public class ConfigManager {
                     pointsEquation.setVariable("joblevel", 1);
                     pointsEquation.setVariable("basepoints", 1);
                 } catch (ParseError e) {
-                    log.warning("Job " + jobKey + " has an invalid points-progression-equation property. Skipping job!");
+                    log.warning("Job " + jobConfigName + " has an invalid points-progression-equation property. Skipping job!");
                     continue;
                 }
             }
+            job.setPointsEquation(pointsEquation);
 
             // Gui item
-            int guiSlot = -1;
+
             ItemStack guiItem = CMIMaterial.GREEN_WOOL.newItemStack();
             ConfigurationSection guiSection = jobSection.getConfigurationSection("Gui");
 
+            GuiItem gItem = new GuiItem();
             if (guiSection != null) {
-                if (guiSection.isString("Item")) {
+                if (guiSection.isString("ItemStack")) {
+
+                    CMIAsyncHead ahead = new CMIAsyncHead() {
+                        @Override
+                        public void afterAsyncUpdate(ItemStack item) {
+                            gItem.setGuiItem(item);
+                        }
+                    };
+
+                    CMIItemStack item = CMIItemStack.deserialize(guiSection.getString("ItemStack"), ahead);
+                    if (!ahead.isAsyncHead() && item != null && item.getCMIType().isNone())
+                        gItem.setGuiItem(item.getItemStack());
+
+                } else if (guiSection.isString("Item")) {
                     String item = guiSection.getString("Item");
+
                     String subType = "";
 
                     String[] itemSplit = item.split("-", 2);
@@ -1203,10 +1207,16 @@ public class ConfigManager {
 
                     if (material != CMIMaterial.NONE)
                         guiItem = material.newItemStack();
+
+                    if (!informedGUI) {
+                        CMIMessages.consoleMessage("&5Update " + jobConfigName + " jobs gui item section to use `ItemStack` instead of `Item` sections format. More information inside _EXAMPLE job file");
+                        informedGUI = true;
+                    }
                 } else if (guiSection.isInt("Id") && guiSection.isInt("Data")) {
                     guiItem = CMIMaterial.get(guiSection.getInt("Id"), guiSection.getInt("Data")).newItemStack();
+                    CMIMessages.consoleMessage("Update " + jobConfigName + " jobs gui item section to use `Item` instead of `Id` and `Data` sections");
                 } else
-                    log.warning("Job " + jobKey + " has an invalid (" + guiSection.getString("Item") + ") Gui property. Please fix this if you want to use it!");
+                    log.warning("Job " + jobConfigName + " has an invalid (" + guiSection.getString("Item") + ") Gui property. Please fix this if you want to use it!");
 
                 for (String str4 : guiSection.getStringList("Enchantments")) {
                     String[] id = str4.split(":", 2);
@@ -1236,11 +1246,12 @@ public class ConfigManager {
                 if (!customSkull.isEmpty()) {
                     guiItem = Util.getSkull(customSkull);
                 }
-
-                int slot = guiSection.getInt("slot", -1);
-                if (slot >= 0)
-                    guiSlot = slot;
+                gItem.setGuiSlot(guiSection.getInt("slot", -1));
             }
+
+            gItem.setGuiItem(guiItem);
+            
+            job.setGuiItem(gItem);
 
             // Permissions
             List<JobPermission> jobPermissions = new ArrayList<>();
@@ -1249,7 +1260,7 @@ public class ConfigManager {
                 for (String permissionKey : permissionsSection.getKeys(false)) {
                     ConfigurationSection permissionSection = permissionsSection.getConfigurationSection(permissionKey);
                     if (permissionSection == null) {
-                        log.warning("Job " + jobKey + " has an invalid permission key " + permissionKey + "!");
+                        log.warning("Job " + jobConfigName + " has an invalid permission key " + permissionKey + "!");
                         continue;
                     }
 
@@ -1259,6 +1270,7 @@ public class ConfigManager {
                     jobPermissions.add(new JobPermission(node, value, levelRequirement));
                 }
             }
+            job.setPermissions(jobPermissions);
 
             // Conditions
             List<JobConditions> jobConditions = new ArrayList<>();
@@ -1268,7 +1280,7 @@ public class ConfigManager {
                     ConfigurationSection permissionSection = conditionsSection.getConfigurationSection(conditionKey);
 
                     if (permissionSection == null) {
-                        log.warning("Job " + jobKey + " has an invalid condition key " + conditionKey + "!");
+                        log.warning("Job " + jobConfigName + " has an invalid condition key " + conditionKey + "!");
                         continue;
                     }
 
@@ -1276,13 +1288,14 @@ public class ConfigManager {
                     List<String> perform = permissionSection.getStringList("perform");
 
                     if (requires.isEmpty() || perform.isEmpty()) {
-                        log.warning("Job " + jobKey + " has an invalid condition requirement " + conditionKey + "!");
+                        log.warning("Job " + jobConfigName + " has an invalid condition requirement " + conditionKey + "!");
                         continue;
                     }
 
                     jobConditions.add(new JobConditions(conditionKey.toLowerCase(), requires, perform));
                 }
             }
+            job.setConditions(jobConditions);
 
             // Commands
             List<JobCommands> jobCommand = new ArrayList<>();
@@ -1292,7 +1305,7 @@ public class ConfigManager {
                     ConfigurationSection commandSection = commandsSection.getConfigurationSection(commandKey);
 
                     if (commandSection == null) {
-                        log.warning("Job " + jobKey + " has an invalid command key " + commandKey + "!");
+                        log.warning("Job " + jobConfigName + " has an invalid command key " + commandKey + "!");
                         continue;
                     }
 
@@ -1302,67 +1315,11 @@ public class ConfigManager {
                         commands.add(commandSection.getString("command"));
 
                     int levelFrom = commandSection.getInt("levelFrom", 0);
-                    int levelUntil = commandSection.getInt("levelUntil", maxLevel);
+                    int levelUntil = commandSection.getInt("levelUntil", job.getMaxLevel());
                     jobCommand.add(new JobCommands(commandKey.toLowerCase(), commands, levelFrom, levelUntil));
                 }
             }
-
-            // Items **OUTDATED** Moved to ItemBoostManager!!
-            HashMap<String, JobItems> jobItems = new HashMap<>();
-            ConfigurationSection itemsSection = jobSection.getConfigurationSection("items");
-            if (itemsSection != null) {
-                for (String itemKey : itemsSection.getKeys(false)) {
-                    ConfigurationSection itemSection = itemsSection.getConfigurationSection(itemKey);
-
-                    String node = itemKey.toLowerCase();
-                    if (itemSection == null) {
-                        log.warning("Job " + jobKey + " has an invalid item key " + itemKey + "!");
-                        continue;
-                    }
-                    int id = itemSection.getInt("id");
-
-                    String name = null;
-                    if (itemSection.isString("name"))
-                        name = itemSection.getString("name");
-
-                    List<String> lore = new ArrayList<>();
-                    if (itemSection.contains("lore"))
-                        for (String eachLine : itemSection.getStringList("lore")) {
-                            lore.add(CMIChatColor.translate(eachLine));
-                        }
-
-                    HashMap<Enchantment, Integer> enchants = new HashMap<>();
-                    if (itemSection.contains("enchants"))
-                        for (String eachLine : itemSection.getStringList("enchants")) {
-
-                            if (!eachLine.contains("="))
-                                continue;
-
-                            Enchantment ench = CMIEnchantment.getEnchantment(eachLine.split("=")[0]);
-                            Integer level = -1;
-                            try {
-                                level = Integer.parseInt(eachLine.split("=")[1]);
-                            } catch (NumberFormatException e) {
-                                continue;
-                            }
-
-                            if (ench != null && level != -1)
-                                enchants.put(ench, level);
-                        }
-
-                    BoostMultiplier b = new BoostMultiplier();
-                    if (itemSection.isDouble("moneyBoost"))
-                        b.add(CurrencyType.MONEY, itemSection.getDouble("moneyBoost") - 1);
-                    if (itemSection.isDouble("pointBoost"))
-                        b.add(CurrencyType.POINTS, itemSection.getDouble("pointBoost") - 1);
-                    if (itemSection.isDouble("expBoost"))
-                        b.add(CurrencyType.EXP, itemSection.getDouble("expBoost") - 1);
-
-                    jobItems.put(node.toLowerCase(), new JobItems(node, CMIMaterial.get(id), 1, name, lore, enchants, b, new ArrayList<Job>()));
-                }
-
-                CMIMessages.consoleMessage("&cRemove Items section from " + jobKey + " job, as of Jobs 4.10.0 version this was moved to boostedItems.yml file!");
-            }
+            job.setCommands(jobCommand);
 
             // Limited Items
             Map<String, JobLimitedItems> jobLimitedItems = new HashMap<>();
@@ -1372,70 +1329,104 @@ public class ConfigManager {
                     ConfigurationSection itemSection = limitedItemsSection.getConfigurationSection(itemKey);
 
                     if (itemSection == null) {
-                        log.warning("Job " + jobKey + " has an invalid item key " + itemKey + "!");
+                        log.warning("Job " + jobConfigName + " has an invalid item key " + itemKey + "!");
                         continue;
-                    }
-
-                    CMIMaterial mat = CMIMaterial.NONE;
-
-                    if (itemSection.isInt("id")) {
-                        mat = CMIMaterial.get(itemSection.getInt("id"));
-                    } else {
-                        mat = CMIMaterial.get(itemSection.getString("id"));
-                    }
-
-                    if (mat == CMIMaterial.NONE) {
-                        log.warning("Job " + jobKey + " has incorrect limitedItems material id!");
-                        continue;
-                    }
-
-                    List<String> lore = itemSection.getStringList("lore");
-
-                    for (int a = 0; a < lore.size(); a++) {
-                        lore.set(a, CMIChatColor.translate(lore.get(a)));
-                    }
-
-                    Map<Enchantment, Integer> enchants = new HashMap<>();
-                    for (String eachLine : itemSection.getStringList("enchants")) {
-                        String[] split = eachLine.split("=", 2);
-                        if (split.length == 0)
-                            continue;
-
-                        Enchantment ench = CMIEnchantment.getEnchantment(split[0]);
-                        if (ench == null)
-                            continue;
-
-                        int level = -1;
-
-                        if (split.length > 1) {
-                            try {
-                                level = Integer.parseInt(split[1]);
-                            } catch (NumberFormatException e) {
-                            }
-                        }
-
-                        if (level != -1)
-                            enchants.put(ench, level);
                     }
 
                     String node = itemKey.toLowerCase();
 
-                    jobLimitedItems.put(node, new JobLimitedItems(node, mat, 1, itemSection.getString("name"), lore, enchants, itemSection.getInt("level")));
+                    if (itemSection.contains("id")) {
+
+                        CMIMaterial mat = CMIMaterial.NONE;
+
+                        if (itemSection.isInt("id")) {
+                            mat = CMIMaterial.get(itemSection.getInt("id"));
+                        } else {
+                            mat = CMIMaterial.get(itemSection.getString("id"));
+                        }
+
+                        if (mat == CMIMaterial.NONE) {
+                            log.warning("Job " + jobConfigName + " has incorrect limitedItems material id!");
+                            continue;
+                        }
+
+                        List<String> lore = itemSection.getStringList("lore");
+
+                        if (lore != null)
+                            for (int a = 0; a < lore.size(); a++) {
+                                lore.set(a, CMIChatColor.translate(lore.get(a).replace(" ", "_")));
+                            }
+
+                        StringBuilder enchants = new StringBuilder();
+                        for (String eachLine : itemSection.getStringList("enchants")) {
+                            String[] split = eachLine.split("=", 2);
+                            if (split.length == 0)
+                                continue;
+
+                            Enchantment ench = CMIEnchantment.getEnchantment(split[0]);
+                            if (ench == null)
+                                continue;
+
+                            int level = -1;
+
+                            if (split.length > 1) {
+                                try {
+                                    level = Integer.parseInt(split[1]);
+                                } catch (NumberFormatException e) {
+                                }
+                            }
+
+                            if (level == -1)
+                                continue;
+
+                            if (!enchants.toString().isEmpty())
+                                enchants.append(",");
+                            enchants.append(split[0] + ":" + level);
+                        }
+
+                        String itemString = "";
+
+                        String name = CMIChatColor.translate(itemSection.getString("name"));
+
+                        if (name != null)
+                            itemString += ";n{" + name.replace(" ", "_") + "}";
+
+                        if (lore != null)
+                            for (int b = 0; b < lore.size(); b++) {
+                                lore.set(b, CMIChatColor.translate(lore.get(b).replace(" ", "_")));
+                            }
+
+                        if (lore != null && !lore.isEmpty())
+                            itemString += ";l{" + CMIList.listToString(lore, "\\n") + "}";
+
+                        jobLimitedItems.put(node, new JobLimitedItems(node, itemString, itemSection.getInt("level")));
+
+                        if (!informedLimited) {
+                            CMIMessages.consoleMessage("&5Update " + jobConfigName
+                                + " jobs limited items section to use `ItemStack` instead of `id` sections format. More information inside _EXAMPLE job file");
+                            informedLimited = true;
+                        }
+
+                    } else if (itemSection.contains("ItemStack")) {
+
+                        CMIItemStack limitedItem = CMIItemStack.deserialize(itemSection.getString("ItemStack"));
+
+                        if (limitedItem == null || limitedItem.getCMIType().isNone()) {
+                            log.warning("Job " + jobConfigName + " has incorrect limitedItems material id!");
+                            continue;
+                        }
+
+                        jobLimitedItems.put(node, new JobLimitedItems(node, itemSection.getString("ItemStack"), itemSection.getInt("level")));
+
+                    }
                 }
             }
 
-            Job job = new Job(jobKey, jobSection.getString("displayName"), jobFullName, jobShortName, description,
-                color, maxExpEquation, displayMethod, maxLevel, vipmaxLevel, maxSlots, jobPermissions, jobCommand,
-                jobConditions, jobItems, jobLimitedItems, jobSection.getStringList("cmd-on-join"),
-                jobSection.getStringList("cmd-on-leave"), guiItem, guiSlot, bossbar, rejoinCd,
-                jobSection.getStringList("world-blacklist"));
+            job.setLimitedItems(jobLimitedItems);
 
-            job.setFullDescription(fDescription);
-            job.setMoneyEquation(incomeEquation);
-            job.setXpEquation(expEquation);
-            job.setPointsEquation(pointsEquation);
-            job.setBossbar(bossbar);
-            job.setRejoinCd(rejoinCd);
+            job.setCmdOnJoin(jobSection.getStringList("cmd-on-join"));
+            job.setCmdOnLeave(jobSection.getStringList("cmd-on-leave"));
+            job.setWorldBlacklist(jobSection.getStringList("world-blacklist"));
             job.setMaxLevelCommands(jobSection.getStringList("commands-on-max-level"));
             job.setIgnoreMaxJobs(jobSection.getBoolean("ignore-jobs-max"));
             job.setReversedWorldBlacklist(jobSection.getBoolean("reverse-world-blacklist-functionality"));
@@ -1454,7 +1445,7 @@ public class ConfigManager {
                         ActionType actionType = ActionType.getByName(sqsection.getString("Action"));
 
                         quest.setConfigName(one);
-                        
+
                         if (actionType != null) {
                             KeyValues kv = getKeyValue(sqsection.getString("Target").toUpperCase(), actionType, jobFullName);
                             if (kv != null) {
@@ -1466,9 +1457,7 @@ public class ConfigManager {
 
                         for (String oneObjective : sqsection.getStringList("Objectives")) {
                             List<QuestObjective> objectives = QuestObjective.get(oneObjective, jobFullName);
-                            
-                            
-                            
+
                             quest.addObjectives(objectives);
                         }
 
@@ -1495,9 +1484,10 @@ public class ConfigManager {
             }
             job.setMaxDailyQuests(jobSection.getInt("maxDailyQuests", 1));
 
-            Integer softIncomeLimit = null,
-                softExpLimit = null,
-                softPointsLimit = null;
+            Integer softIncomeLimit = null;
+            Integer softExpLimit = null;
+            Integer softPointsLimit = null;
+
             if (jobSection.isInt("softIncomeLimit"))
                 softIncomeLimit = jobSection.getInt("softIncomeLimit");
             if (jobSection.isInt("softExpLimit"))
@@ -1518,7 +1508,7 @@ public class ConfigManager {
                             KeyValues keyValue = null;
                             String[] sep = mat.split(";", 4);
                             if (sep.length >= 1) {
-                                keyValue = getKeyValue(sep[0], actionType, jobKey);
+                                keyValue = getKeyValue(sep[0], actionType, jobConfigName);
                             }
 
                             if (keyValue == null) {
@@ -1571,7 +1561,7 @@ public class ConfigManager {
                             continue;
                         }
 
-                        KeyValues keyValue = getKeyValue(key, actionType, jobKey);
+                        KeyValues keyValue = getKeyValue(key, actionType, jobConfigName);
                         if (keyValue == null)
                             continue;
 
@@ -1593,7 +1583,7 @@ public class ConfigManager {
                         if (section.isInt("until-level")) {
                             untilLevel = section.getInt("until-level");
                             if (untilLevel < fromlevel) {
-                                log.warning("Job " + jobKey + " has an invalid until-level in " + actionType.getName() + " for type property: " + key
+                                log.warning("Job " + jobConfigName + " has an invalid until-level in " + actionType.getName() + " for type property: " + key
                                     + "! It will be not set.");
                                 untilLevel = -1;
                             }
