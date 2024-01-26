@@ -5,7 +5,7 @@
 	<modelVersion>4.0.0</modelVersion>
 	<groupId>Jobs</groupId>
 	<artifactId>jobs</artifactId>
-	<version>5.2.2.1</version>
+	<version>5.2.2.3</version>
 	<name>Jobs</name>
 	<url>http://maven.apache.org</url>
 
@@ -19,7 +19,7 @@
 		<dependency>
 			<groupId>io.papermc.paper</groupId>
 			<artifactId>paper-api</artifactId>
-			<version>1.20.1-R0.1-SNAPSHOT</version>
+			<version>1.20.4-R0.1-SNAPSHOT</version>
 			<scope>provided</scope>
 			<exclusions>
 				<exclusion>
@@ -225,11 +225,6 @@
 			<scope>system</scope>
 			<!--			 Temporary solution for replacing repository -->
 			<systemPath>${basedir}/libs/mypet-3.11-20210318.180552-1.jar</systemPath>
-		</dependency>
-		<dependency>
-			<groupId>CMILib</groupId>
-			<artifactId>CMILib</artifactId>
-			<version>1.4.3.1</version>
 		</dependency>
 	</dependencies>
 	<repositories>

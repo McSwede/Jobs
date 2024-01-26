@@ -71,6 +71,7 @@ public class Placeholder {
         user_jobs,
 
         user_boost_$1_$2("jname/number", "money/exp/points"),
+        user_pboost_$1_$2("jname/number", "money/exp/points"),
         user_isin_$1("jname/number"),
         user_canjoin_$1("jname/number"),
         user_jlevel_$1("jname/number"),
@@ -83,6 +84,8 @@ public class Placeholder {
         user_jmaxexpunf_$1("jname/number"),
         user_jmaxlvl_$1("jname/number"),
         user_job_$1("jname/number"),
+        user_jobfull_$1("jname/number"),
+        user_jobshort_$1("jname/number"),
         user_title_$1("jname/number"),
         user_archived_jobs_level_$1("jname/number"),
         user_archived_jobs_exp_$1("jname/number"),
@@ -382,7 +385,7 @@ public class Placeholder {
         try {
             int id = Integer.parseInt(value);
             if (id > 0)
-                return user.progression.get(id - 1);
+                return user.getJobProgression().get(id - 1);
         } catch (IndexOutOfBoundsException | NumberFormatException e) {
             Job job = Jobs.getJob(value);
             if (job != null)
@@ -465,18 +468,18 @@ public class Placeholder {
             case user_displayhonorific:
                 return user.getDisplayHonorific();
             case user_joinedjobcount:
-                return Integer.toString(user.progression.size());
+                return Integer.toString(user.getJobProgression().size());
             case user_archived_jobs:
                 return Integer.toString(user.getArchivedJobs().getArchivedJobs().size());
             case user_jobs:
                 StringBuilder jobNames = new StringBuilder();
-                for (JobProgression prog : user.progression) {
+                for (JobProgression prog : user.getJobProgression()) {
                     if (!jobNames.toString().isEmpty()) {
                         jobNames.append(LC.info_ListSpliter.getLocale());
                     }
                     jobNames.append(prog.getJob().getDisplayName());
                 }
-                if (user.progression.isEmpty()) {
+                if (user.getJobProgression().isEmpty()) {
                     if (Jobs.getNoneJob() != null)
                         jobNames.append(Jobs.getNoneJob().getDisplayName());
                 }
@@ -535,10 +538,17 @@ public class Placeholder {
                 case user_boost_$1_$2:
                     Boost boost = Jobs.getPlayerManager().getFinalBonus(user, job, true, true);
                     return (vals.size() < 2 || j == null) ? "" : simplifyDouble(boost.getFinal(CurrencyType.getByName(vals.get(1)), false, true));
+                case user_pboost_$1_$2:
+                    boost = Jobs.getPlayerManager().getFinalBonus(user, job, true, true);
+                    return (vals.size() < 2 || j == null) ? "" : simplifyDouble(boost.getFinal(CurrencyType.getByName(vals.get(1)), false, true) * 100D);
                 case user_isin_$1:
                     return job == null ? "no" : convert(user.isInJob(job));
                 case user_job_$1:
                     return j == null ? "" : j.getJob().getName();
+                case user_jobfull_$1:
+                    return j == null ? "" : j.getJob().getDisplayName();
+                case user_jobshort_$1:
+                    return j == null ? "" : j.getJob().getShortName();
                 case user_title_$1:
                     if (j == null)
                         return "";
@@ -579,7 +589,7 @@ public class Placeholder {
                         if (!Jobs.getCommandManager().hasJobPermission(player, job) ||
                             user.isInJob(job) ||
                             job.getMaxSlots() != null && Jobs.getUsedSlots(job) >= job.getMaxSlots() ||
-                            !job.isIgnoreMaxJobs() && !Jobs.getPlayerManager().getJobsLimit(user, (short) user.progression.size()))
+                            !job.isIgnoreMaxJobs() && !Jobs.getPlayerManager().getJobsLimit(user, (short) user.getJobProgression().size()))
                             return convert(false);
 
                         return convert(true);
