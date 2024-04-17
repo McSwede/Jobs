@@ -60,8 +60,6 @@ import org.bukkit.event.entity.EntityDamageEvent;
 import org.bukkit.event.entity.EntityDeathEvent;
 import org.bukkit.event.entity.EntityExplodeEvent;
 import org.bukkit.event.entity.EntityTameEvent;
-import org.bukkit.event.entity.FoodLevelChangeEvent;
-import org.bukkit.event.player.PlayerItemConsumeEvent;
 import org.bukkit.event.entity.SlimeSplitEvent;
 import org.bukkit.event.hanging.HangingBreakByEntityEvent;
 import org.bukkit.event.hanging.HangingPlaceEvent;
@@ -73,10 +71,10 @@ import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.event.inventory.InventoryMoveItemEvent;
 import org.bukkit.event.inventory.InventoryType;
 import org.bukkit.event.inventory.InventoryType.SlotType;
-import org.bukkit.event.inventory.PrepareAnvilEvent;
 import org.bukkit.event.player.PlayerFishEvent;
 import org.bukkit.event.player.PlayerInteractEntityEvent;
 import org.bukkit.event.player.PlayerInteractEvent;
+import org.bukkit.event.player.PlayerItemConsumeEvent;
 import org.bukkit.event.player.PlayerShearEntityEvent;
 import org.bukkit.event.world.ChunkUnloadEvent;
 import org.bukkit.inventory.AnvilInventory;
@@ -90,12 +88,10 @@ import org.bukkit.inventory.meta.PotionMeta;
 import org.bukkit.metadata.FixedMetadataValue;
 import org.bukkit.metadata.MetadataValue;
 import org.bukkit.permissions.PermissionAttachmentInfo;
-import org.jetbrains.annotations.NotNull;
 
 import com.bgsoftware.wildstacker.api.enums.StackSplit;
 import com.gamingmesh.jobs.ItemBoostManager;
 import com.gamingmesh.jobs.Jobs;
-import com.gamingmesh.jobs.CMILib.CMIEnchantment;
 import com.gamingmesh.jobs.actions.BlockActionInfo;
 import com.gamingmesh.jobs.actions.BlockCollectInfo;
 import com.gamingmesh.jobs.actions.CustomKillInfo;
@@ -128,12 +124,13 @@ import net.Zrips.CMILib.CMILib;
 import net.Zrips.CMILib.ActionBar.CMIActionBar;
 import net.Zrips.CMILib.Colors.CMIChatColor;
 import net.Zrips.CMILib.Container.CMILocation;
+import net.Zrips.CMILib.Enchants.CMIEnchantEnum;
+import net.Zrips.CMILib.Enchants.CMIEnchantment;
 import net.Zrips.CMILib.Entities.CMIEntityType;
 import net.Zrips.CMILib.Items.CMIItemStack;
 import net.Zrips.CMILib.Items.CMIMC;
 import net.Zrips.CMILib.Items.CMIMaterial;
 import net.Zrips.CMILib.Locale.LC;
-import net.Zrips.CMILib.Logs.CMIDebug;
 import net.Zrips.CMILib.Messages.CMIMessages;
 import net.Zrips.CMILib.Version.Version;
 import net.Zrips.CMILib.Version.Schedulers.CMIScheduler;
@@ -145,16 +142,13 @@ public final class JobsPaymentListener implements Listener {
 
     private final Cache<UUID, Double> damageDealtByPlayers = CacheBuilder.newBuilder()
         .expireAfterWrite(5, TimeUnit.MINUTES)
-        .weakKeys()
         .build();
     private final Cache<UUID, Entity> punchedEndCrystals = CacheBuilder.newBuilder()
         .expireAfterWrite(10, TimeUnit.SECONDS)
-        .weakKeys()
         .build();
 
     private final Cache<UUID, Player> entityLastDamager = CacheBuilder.newBuilder()
         .expireAfterWrite(5, TimeUnit.MINUTES)
-        .weakKeys()
         .build();
     private Cache<UUID, Long> cowMilkingTimer;
 
@@ -164,7 +158,6 @@ public final class JobsPaymentListener implements Listener {
         if (Jobs.getGCManager().CowMilkingTimer > 0) {
             cowMilkingTimer = CacheBuilder.newBuilder()
                 .expireAfterWrite(Jobs.getGCManager().CowMilkingTimer, TimeUnit.MILLISECONDS)
-                .weakKeys()
                 .build();
         }
     }
@@ -426,7 +419,6 @@ public final class JobsPaymentListener implements Listener {
 
     @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
     public void onBlockBreak(BlockBreakEvent event) {
-
         final Block block = event.getBlock();
 
         if (!Jobs.getGCManager().canPerformActionInWorld(block.getWorld()))
@@ -460,6 +452,7 @@ public final class JobsPaymentListener implements Listener {
 
             Jobs.FASTPAYMENT.remove(player.getUniqueId());
         }
+
         if (!payForItemDurabilityLoss(player))
             return;
 
@@ -469,13 +462,12 @@ public final class JobsPaymentListener implements Listener {
 
             if (item.getType() != Material.AIR && Jobs.getBpManager().isInBp(block)) {
                 for (Enchantment one : item.getEnchantments().keySet()) {
-                    if (CMIEnchantment.get(one) == CMIEnchantment.SILK_TOUCH) {
+                    if (CMIEnchantment.get(one).equalEnum(CMIEnchantEnum.SILK_TOUCH)) {
                         return;
                     }
                 }
             }
         }
-
         // Better implementation?
         // Prevent money duplication when breaking plant blocks
         /*Material brokenBlock = block.getRelative(BlockFace.DOWN).getType();
@@ -732,7 +724,8 @@ public final class JobsPaymentListener implements Listener {
             // when we trying to craft tipped arrow effects
             if (currentItem != null && currentItem.getItemMeta() instanceof PotionMeta) {
                 PotionMeta potion = (PotionMeta) currentItem.getItemMeta();
-                Jobs.action(jPlayer, new PotionItemActionInfo(currentItem, ActionType.CRAFT, potion.getBasePotionData().getType()));
+                if (Version.isCurrentEqualOrHigher(Version.v1_9_R1))
+                    Jobs.action(jPlayer, new PotionItemActionInfo(currentItem, ActionType.CRAFT, potion.getBasePotionData().getType()));
             } else if (resultStack.hasItemMeta() && resultStack.getItemMeta().hasDisplayName()) {
                 Jobs.action(jPlayer, new ItemNameActionInfo(CMIChatColor.stripColor(resultStack.getItemMeta().getDisplayName()), ActionType.CRAFT));
             } else if (currentItem != null) {
@@ -802,7 +795,8 @@ public final class JobsPaymentListener implements Listener {
 
                     if (resultStack.getItemMeta() instanceof PotionMeta) {
                         PotionMeta potion = (PotionMeta) resultStack.getItemMeta();
-                        Jobs.action(jPlayer, new PotionItemActionInfo(resultStack, type, potion.getBasePotionData().getType()));
+                        if (Version.isCurrentEqualOrHigher(Version.v1_9_R1))
+                            Jobs.action(jPlayer, new PotionItemActionInfo(resultStack, type, potion.getBasePotionData().getType()));
                     } else if (resultStack.hasItemMeta() && resultStack.getItemMeta().hasDisplayName()) {
                         Jobs.action(jPlayer, new ItemNameActionInfo(CMIChatColor.stripColor(resultStack.getItemMeta().getDisplayName()), type));
                     } else {
@@ -823,9 +817,7 @@ public final class JobsPaymentListener implements Listener {
         else if (b == null)
             return false;
 
-        CMIMaterial mat1 = CMIMaterial.get(a),
-            mat2 = CMIMaterial.get(b);
-        return mat1 == mat2 && Util.getDurability(a) == Util.getDurability(b) && Objects.equal(a.getData(), b.getData()) &&
+        return CMIMaterial.get(a) == CMIMaterial.get(b) && Util.getDurability(a) == Util.getDurability(b) && Objects.equal(a.getData(), b.getData()) &&
             Objects.equal(a.getEnchantments(), b.getEnchantments());
     }
 
@@ -840,13 +832,11 @@ public final class JobsPaymentListener implements Listener {
     private static String getEnchantName(Enchantment enchant) {
         try {
             return enchant.getKey().getKey().toLowerCase().replace("_", "").replace("minecraft:", "");
-
         } catch (Throwable e) {
             CMIEnchantment cmiEnchant = CMIEnchantment.get(enchant);
             if (cmiEnchant != null)
-                return cmiEnchant.toString();
+                return cmiEnchant.getKeyName();
         }
-
         return null;
     }
 
@@ -906,6 +896,7 @@ public final class JobsPaymentListener implements Listener {
 
         Inventory inv = event.getInventory();
 
+        int slotToCheck = 2;
         // must be an inventory
         if (!(inv instanceof AnvilInventory) && (Version.isCurrentEqualOrHigher(Version.v1_14_R1)
             && !(inv instanceof GrindstoneInventory) && !(inv instanceof StonecutterInventory))
@@ -913,8 +904,14 @@ public final class JobsPaymentListener implements Listener {
             && (Version.isCurrentEqualOrHigher(Version.v1_16_R1) && !(inv instanceof SmithingInventory)))
             return;
 
+        if (Version.isCurrentEqualOrHigher(Version.v1_14_R1) && (inv instanceof StonecutterInventory))
+            slotToCheck = 1;
+        else if (Version.isCurrentEqualOrHigher(Version.v1_16_R1) && (inv instanceof SmithingInventory))
+            slotToCheck = 3;
+
         int slot = event.getSlot();
-        if (event.getSlotType() != SlotType.RESULT || (slot != 2 && slot != 1))
+
+        if (event.getSlotType() != SlotType.RESULT || (slot != slotToCheck))
             return;
 
         if (((Version.isCurrentEqualOrHigher(Version.v1_14_R1) && !(inv instanceof StonecutterInventory))
@@ -1082,20 +1079,6 @@ public final class JobsPaymentListener implements Listener {
         Jobs.action(jPlayer, new ItemActionInfo(resultStack, ActionType.ENCHANT));
     }
 
-    @EventHandler(priority = EventPriority.NORMAL)
-    public void PrepareAnvilEvent(final PrepareAnvilEvent event) {
-        if (!Jobs.getGCManager().preventShopItemEnchanting)
-            return;
-
-        if (!ItemBoostManager.containsItemBoostByNBT(event.getInventory().getContents()[0]))
-            return;
-
-        if (!CMIMaterial.get(event.getInventory().getContents()[1]).equals(CMIMaterial.ENCHANTED_BOOK))
-            return;
-
-        event.setResult(null);
-    }
-
     @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
     public void onInventoryMoveItemEventToFurnace(InventoryMoveItemEvent event) {
         if (!Jobs.getGCManager().PreventHopperFillUps || event.getItem().getType() == Material.AIR)
@@ -1243,11 +1226,11 @@ public final class JobsPaymentListener implements Listener {
         if (!(((EntityDamageByEntityEvent) event).getDamager() instanceof Player))
             return;
 
-        //Gross but works
-        entityLastDamager.put(ent.getUniqueId(), (Player) ((EntityDamageByEntityEvent) event).getDamager());
-
         if (!Jobs.getGCManager().MonsterDamageUse)
             return;
+
+        //Gross but works
+        entityLastDamager.put(ent.getUniqueId(), (Player) ((EntityDamageByEntityEvent) event).getDamager());
 
         double damage = event.getFinalDamage();
         double s = ((Damageable) ent).getHealth();
@@ -1256,11 +1239,7 @@ public final class JobsPaymentListener implements Listener {
 
         UUID entUUID = ent.getUniqueId();
         Double damageDealt = damageDealtByPlayers.getIfPresent(entUUID);
-        if (damageDealt != null) {
-            damageDealtByPlayers.put(entUUID, damageDealt + damage);
-        } else {
-            damageDealtByPlayers.put(entUUID, damage);
-        }
+        damageDealtByPlayers.put(entUUID, damageDealt == null ? damage : damageDealt + damage);
     }
 
     @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
@@ -1284,15 +1263,13 @@ public final class JobsPaymentListener implements Listener {
         if (damage > s)
             damage = s;
 
-        if (((Projectile) event.getDamager()).getShooter() instanceof Player) {
-            entityLastDamager.put(ent.getUniqueId(), (Player) ((Projectile) event.getDamager()).getShooter());
-            Double damageDealt = damageDealtByPlayers.getIfPresent(entUUID);
-            if (damageDealt != null) {
-                damageDealtByPlayers.put(entUUID, damageDealt + damage);
-            } else {
-                damageDealtByPlayers.put(entUUID, damage);
-            }
-        }
+        if (!(((Projectile) event.getDamager()).getShooter() instanceof Player))
+            return;
+
+        entityLastDamager.put(ent.getUniqueId(), (Player) ((Projectile) event.getDamager()).getShooter());
+
+        Double damageDealt = damageDealtByPlayers.getIfPresent(entUUID);
+        damageDealtByPlayers.put(entUUID, damageDealt == null ? damage : damageDealt + damage);
     }
 
     @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
@@ -1304,12 +1281,13 @@ public final class JobsPaymentListener implements Listener {
         Entity killer;
 
         if (!(event.getEntity().getLastDamageCause() instanceof EntityDamageByEntityEvent)) {
-            if (entityLastDamager.getIfPresent(event.getEntity().getUniqueId()) == null)
-                return;
             killer = entityLastDamager.getIfPresent(event.getEntity().getUniqueId());
         } else {
             killer = ((EntityDamageByEntityEvent) event.getEntity().getLastDamageCause()).getDamager();
         }
+
+        if (killer == null)
+            return;
 
         // mob spawner, no payment or experience
         if (!Jobs.getGCManager().payNearSpawner() && lVictim.hasMetadata(Jobs.getPlayerManager().getMobSpawnerMetadata())) {
@@ -1317,9 +1295,7 @@ public final class JobsPaymentListener implements Listener {
                 // So lets remove meta in case some plugin removes entity in wrong way.
                 // Need to delay action for other function to properly check for existing meta data relating to this entity before clearing it out
                 // Longer delay is needed due to mob split event being fired few seconds after mob dies and not at same time
-                CMIScheduler.get().runTaskLater(() -> {
-                    lVictim.removeMetadata(Jobs.getPlayerManager().getMobSpawnerMetadata(), plugin);
-                }, 200L);
+                CMIScheduler.runTaskLater(() -> lVictim.removeMetadata(Jobs.getPlayerManager().getMobSpawnerMetadata(), plugin), 200L);
             } catch (Throwable ignored) {
             }
             return;
@@ -1341,14 +1317,15 @@ public final class JobsPaymentListener implements Listener {
             if (!ignore) {
                 UUID lVictimUUID = lVictim.getUniqueId();
                 Double damage = damageDealtByPlayers.getIfPresent(lVictimUUID);
-                if (damage != null) {
-                    double perc = (damage * 100D) / Util.getMaxHealth(lVictim);
-                    damageDealtByPlayers.invalidate(lVictimUUID);
-                    if (perc < Jobs.getGCManager().MonsterDamagePercentage)
-                        return;
-                } else {
+                // Not paying if we have no records about damage done to an entity by the player's
+                if (damage == null)
                     return;
-                }
+
+                double perc = (damage * 100D) / Util.getMaxHealth(lVictim);
+                damageDealtByPlayers.invalidate(lVictimUUID);
+                entityLastDamager.invalidate(lVictimUUID);
+                if (perc < Jobs.getGCManager().MonsterDamagePercentage)
+                    return;
             }
         }
 
@@ -1670,7 +1647,8 @@ public final class JobsPaymentListener implements Listener {
             return;
 
         if (currentItem.getItemMeta() instanceof PotionMeta) {
-            Jobs.action(jPlayer, new PotionItemActionInfo(currentItem, ActionType.EAT, ((PotionMeta) currentItem.getItemMeta()).getBasePotionData().getType()));
+            if (Version.isCurrentEqualOrHigher(Version.v1_9_R1))
+                Jobs.action(jPlayer, new PotionItemActionInfo(currentItem, ActionType.EAT, ((PotionMeta) currentItem.getItemMeta()).getBasePotionData().getType()));
         } else {
             Jobs.action(jPlayer, new ItemActionInfo(currentItem, ActionType.EAT));
         }

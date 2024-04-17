@@ -18,6 +18,7 @@ import com.gamingmesh.jobs.container.Job;
 import com.gamingmesh.jobs.container.JobInfo;
 import com.gamingmesh.jobs.container.JobProgression;
 import com.gamingmesh.jobs.container.JobsPlayer;
+import com.gamingmesh.jobs.i18n.Language;
 
 import net.Zrips.CMILib.CMILib;
 import net.Zrips.CMILib.Colors.CMIChatColor;
@@ -211,7 +212,7 @@ public class GuiManager {
                 }
             };
 
-            button.setName(job.getDisplayName());
+            button.setName(Jobs.getLanguage().getMessage("command.info.help.jobName", job));
             button.clearLore();
             button.addLore(lore);
             if (Jobs.getGCManager().hideItemAttributes) {
@@ -337,8 +338,9 @@ public class GuiManager {
                         continue;
 
                     ItemMeta meta = guiItem.getItemMeta();
-                    meta.setDisplayName(job.getDisplayName());
+                    meta.setDisplayName(Jobs.getLanguage().getMessage("command.info.help.jobName", job));
                     meta.setLore(lore);
+                    
                     guiItem.setItemMeta(meta);
                     tempInv.setItem(i, guiItem.clone());
 
@@ -357,7 +359,7 @@ public class GuiManager {
             }
 
             ItemMeta meta = guiItem.getItemMeta();
-            meta.setDisplayName(job.getDisplayName());
+            meta.setDisplayName(Jobs.getLanguage().getMessage("command.info.help.jobName", job));
             meta.setLore(lore);
             guiItem.setItemMeta(meta);
             tempInv.setItem(i, guiItem.clone());
@@ -368,7 +370,7 @@ public class GuiManager {
             .getInvSize().getFields() : Jobs.getGCManager().getJobsGUIRows() * 9;
 
         CMIGui gui = new CMIGui(player);
-        gui.setTitle(Jobs.getLanguage().getMessage("command.info.gui.jobinfo", "[jobname]", job.getName()));
+        gui.setTitle(Language.updateJob(Jobs.getLanguage().getMessage("command.info.gui.jobinfo"), job));
         gui.setInvSize(guiSize);
 
         List<ItemStack> items = new ArrayList<>();
@@ -433,7 +435,7 @@ public class GuiManager {
     private void leaveConfirmation(Player player, Job job, boolean fromCommand, int guiSize) {
 
         CMIGui gui = new CMIGui(player);
-        gui.setTitle(Jobs.getLanguage().getMessage("command.info.gui.jobinfo", "[jobname]", job.getName()));
+        gui.setTitle(Language.updateJob(Jobs.getLanguage().getMessage("command.info.gui.jobinfo"), job));
         gui.setInvSize(guiSize);
 
         gui.addButton(generateLeaveButton(player, job, fromCommand, 21));
@@ -581,7 +583,7 @@ public class GuiManager {
         int backButton = Jobs.getGCManager().getJobsGUIBackButton();
 
         CMIGui gui = new CMIGui(player);
-        gui.setTitle(Jobs.getLanguage().getMessage("command.info.gui.jobinfo", "[jobname]", job.getName()));
+        gui.setTitle(Jobs.getLanguage().getMessage("command.info.gui.jobinfo", job));
 
         gui.setInvSize(guiSize);
 

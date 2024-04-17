@@ -117,6 +117,9 @@ public class exp implements Cmd {
                 break;
             }
 
+            jPlayer.setSaved(false);
+            jPlayer.save(true);
+
             Player player = jPlayer.getPlayer();
             if (player == null) {
                 Language.sendMessage(sender, "general.give.output.notonline");
@@ -124,7 +127,7 @@ public class exp implements Cmd {
             }
 
             if (!silent)
-                Language.sendMessage(player, "command.exp.output.target", "%jobname%", job.getDisplayName(), "%level%", prog.getLevelFormatted(), "%exp%", prog
+                Language.sendMessage(player, "command.exp.output.target", job, "%level%", prog.getLevelFormatted(), "%exp%", prog
                     .getExperience());
 
             if (!silentAdmin)

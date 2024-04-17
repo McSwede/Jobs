@@ -18,7 +18,6 @@ import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.potion.PotionType;
 
 import com.gamingmesh.jobs.Jobs;
-import com.gamingmesh.jobs.CMILib.CMIEnchantment;
 import com.gamingmesh.jobs.container.Job;
 import com.gamingmesh.jobs.container.JobItems;
 import com.gamingmesh.jobs.container.JobProgression;
@@ -28,6 +27,7 @@ import com.gamingmesh.jobs.stuff.GiveItem;
 
 import net.Zrips.CMILib.Colors.CMIChatColor;
 import net.Zrips.CMILib.Container.CMIList;
+import net.Zrips.CMILib.Enchants.CMIEnchantment;
 import net.Zrips.CMILib.GUI.CMIGui;
 import net.Zrips.CMILib.GUI.CMIGuiButton;
 import net.Zrips.CMILib.GUI.GUIManager.GUIClickType;
@@ -36,6 +36,7 @@ import net.Zrips.CMILib.Items.CMIAsyncHead;
 import net.Zrips.CMILib.Items.CMIItemStack;
 import net.Zrips.CMILib.Items.CMIMaterial;
 import net.Zrips.CMILib.Locale.LC;
+import net.Zrips.CMILib.Logs.CMIDebug;
 import net.Zrips.CMILib.Messages.CMIMessages;
 
 @SuppressWarnings("deprecation")
@@ -185,6 +186,7 @@ public class ShopManager {
             }
 
             meta.setLore(lore);
+            guiItem.setItemMeta(meta);
 
             CMIGuiButton button = new CMIGuiButton(guiItem) {
                 @Override
@@ -204,18 +206,18 @@ public class ShopManager {
                         JobProgression playerJob = jPlayer.getJobProgression(tempJob);
                         if (playerJob == null || playerJob.getLevel() < oneJob.getValue()) {
                             player.sendMessage(Jobs.getLanguage().getMessage("command.shop.info.NoJobReqForitem",
-                                "%jobname%", tempJob.getName(),
+                                tempJob,
                                 "%joblevel%", oneJob.getValue()));
                             return;
                         }
                     }
 
-                    if (item.getPointPrice() > 0 && jPlayer.getPointsData().getCurrentPoints() < item.getPointPrice()) {
+                    if (item.getPointPrice() > 0 && (jPlayer.getPointsData().getCurrentPoints() <= 0 || jPlayer.getPointsData().getCurrentPoints() < item.getPointPrice())) {
                         player.sendMessage(Jobs.getLanguage().getMessage("command.shop.info.NoPoints"));
                         return;
                     }
 
-                    if (item.getVaultPrice() > 0 && jPlayer.getBalance() < item.getVaultPrice()) {
+                    if (item.getVaultPrice() > 0 && (jPlayer.getBalance() <= 0 || jPlayer.getBalance() < item.getVaultPrice())) {
                         player.sendMessage(Jobs.getLanguage().getMessage("command.shop.info.NoMoney"));
                         return;
                     }
@@ -258,10 +260,12 @@ public class ShopManager {
                         Jobs.getJobsDAO().savePoints(jPlayer);
                         player.sendMessage(Jobs.getLanguage().getMessage("command.shop.info.Paid", "%amount%", item.getPointPrice()));
                     }
+                    
                     if (item.getVaultPrice() > 0) {
                         jPlayer.withdraw(item.getVaultPrice());
                         player.sendMessage(Jobs.getLanguage().getMessage("command.shop.info.Paid", "%amount%", Jobs.getEconomy().getEconomy().format(item.getVaultPrice())));
                     }
+                    
                     openShopGui(player, page);
                 }
             };
@@ -494,7 +498,7 @@ public class ShopManager {
                                 if (split.length == 0)
                                     continue;
 
-                                Enchantment ench = CMIEnchantment.getEnchantment(split[0]);
+                                Enchantment ench = CMIEnchantment.getByName(split[0]);
                                 if (ench == null)
                                     continue;
 
