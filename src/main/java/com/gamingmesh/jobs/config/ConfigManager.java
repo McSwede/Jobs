@@ -381,6 +381,9 @@ public class ConfigManager {
         cfg.addComment(pt + ".Fish.legacy_raw_fish", "If you are using below version 1.13");
         generate(cfg, pt + ".Fish.legacy_raw_fish");
 
+        cfg.addComment(pt + ".PyroFishingPro", "Catching CUSTOM fish of the PyroFishingPro plugin");
+        generate(cfg, pt + ".PyroFishingPro.CustomTier");
+
         cfg.addComment(pt + ".Repair", "Repairing items");
         generate(cfg, pt + ".Repair.wood_sword");
         generate(cfg, pt + ".Repair.iron_sword");
@@ -407,6 +410,11 @@ public class ConfigManager {
         cfg.addComment(pt + ".Brew", "Brewing miscellaneous items");
         generate(cfg, pt + ".Brew.nether_stalk");
         generate(cfg, pt + ".Brew.redstone");
+        
+        cfg.addComment(pt + ".Brush", "Brushing blocks and getting items from them");
+        generate(cfg, pt + ".Brush.suspicious_sand");
+        generate(cfg, pt + ".Brush.suspicious_gravel");
+        generate(cfg, pt + ".Brush.coal");
 
         cfg.addComment(pt + ".Explore", "Explore options. Each number represents players number in exploring that chunk",
             "1 means that player is first in this chunk, 2 is second and so on",
@@ -588,6 +596,7 @@ public class ConfigManager {
         case KILL:
         case MILK:
         case MMKILL:
+        case PYROFISHINGPRO:
         case BREED:
         case TAME:
         case SHEAR:
@@ -610,6 +619,7 @@ public class ConfigManager {
         case STRIPLOGS:
         case BUCKET:
         case COLLECT:
+        case BRUSH:
             material = CMIMaterial.get(myKey + (subType));
 
             if (material == CMIMaterial.NONE)
@@ -788,7 +798,7 @@ public class ConfigManager {
             type = cmiEnchant != null ? cmiEnchant.getKeyName() : myKey;
 
         } else if (actionType == ActionType.CUSTOMKILL || actionType == ActionType.COLLECT || actionType == ActionType.MMKILL
-            || actionType == ActionType.BAKE || actionType == ActionType.SMELT) {
+            || actionType == ActionType.BAKE || actionType == ActionType.SMELT || actionType == ActionType.PYROFISHINGPRO) {
             type = myKey;
         } else if (actionType == ActionType.EXPLORE) {
             type = myKey;
@@ -803,6 +813,10 @@ public class ConfigManager {
 
             Jobs.getExploreManager().setExploreEnabled();
             Jobs.getExploreManager().setPlayerAmount(amount);
+            
+            Jobs.getChunkExplorationManager().setExploreEnabled();
+	    Jobs.getChunkExplorationManager().setPlayerAmount(amount);
+	    
         } else if (actionType == ActionType.CRAFT) {
             if (myKey.startsWith("!")) {
                 type = myKey.substring(1, myKey.length());
@@ -829,6 +843,12 @@ public class ConfigManager {
             meta = "ALL";
             // case for ":all" identifier
             type = (actionType == ActionType.SHEAR && myKey.startsWith("color")) ? "color" : CMIMaterial.getGeneralMaterialName(type);
+            
+            CMIEntityType entity = CMIEntityType.get(type);
+            if (entity != null) {
+		type = entity.toString();
+	    }
+            
         }
 
         if (actionType == ActionType.TNTBREAK)

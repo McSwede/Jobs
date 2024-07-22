@@ -28,6 +28,7 @@ public enum ActionType {
     KILL(),
     MMKILL("MMKill"),
     FISH(),
+    PYROFISHINGPRO("PyroFishingPro"),
     CRAFT(),
     VTRADE("VTrade"),
     SMELT(),
@@ -44,7 +45,8 @@ public enum ActionType {
     CUSTOMKILL("custom-kill"),
     COLLECT(),
     BAKE(),
-    BUCKET();
+    BUCKET(),
+    BRUSH();
 
     private String name;
 
