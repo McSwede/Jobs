@@ -79,6 +79,7 @@ public class Placeholder {
         user_jmexp_$1("jname/number"),
         user_jprogress_$1("jname/number"),
         user_jexp_rounded_$1("jname/number"),
+        user_jexp_int_$1("jname/number"),
         user_jmaxexp_$1("jname/number"),
         user_jexpunf_$1("jname/number"),
         user_jmaxexpunf_$1("jname/number"),
@@ -91,8 +92,11 @@ public class Placeholder {
         user_archived_jobs_exp_$1("jname/number"),
 
         jtop_name_$1_$2("jname/number", "[1-15]"),
+        jtop_name_total_$1("[1-15]"),
         jtop_displayname_$1_$2("jname/number", "[1-15]"),
+        jtop_displayname_total_$1("[1-15]"),
         jtop_level_$1_$2("jname/number", "[1-15]"),
+        jtop_level_total_$1("[1-15]"),
 
         maxjobs,
         total_workers,
@@ -412,6 +416,7 @@ public class Placeholder {
 
     DecimalFormat dFormat = new DecimalFormat("00.0");
     DecimalFormat fFormat = new DecimalFormat("##.###");
+    NumberFormat format = NumberFormat.getInstance(Locale.ENGLISH);
 
     public String getValue(UUID uuid, JobsPlaceHolders placeHolder, String value) {
         if (placeHolder == null)
@@ -420,8 +425,6 @@ public class Placeholder {
         JobsPlayer user = uuid == null ? null : Jobs.getPlayerManager().getJobsPlayer(uuid);
         // Placeholders by JobsPlayer object
         if (user != null) {
-            NumberFormat format = NumberFormat.getInstance(Locale.ENGLISH);
-
             switch (placeHolder) {
             case user_dailyquests_pending:
                 Integer pendingQuests = (int) user.getQuestProgressions().stream().filter(q -> !q.isCompleted()).count();
@@ -527,6 +530,8 @@ public class Placeholder {
                     return j == null ? "" : Jobs.getCommandManager().jobProgressMessage(j.getMaxExperience(), j.getExperience());
                 case user_jexp_rounded_$1:
                     return j == null ? "0" : fFormat.format(j.getExperience());
+                case user_jexp_int_$1:
+                    return j == null ? "0" : Integer.toString((int) j.getExperience());
                 case user_jmaxexp_$1:
                     return j == null ? "0" : format.format(j.getMaxExperience());
                 case user_jexpunf_$1:
@@ -635,6 +640,26 @@ public class Placeholder {
                     return "";
 
                 return list.get(place - 1).getPlayerInfo().getName();
+            case jtop_name_total_$1:
+                if (values.isEmpty())
+                    return "";
+
+                place = 0;
+                try {
+                    place = Integer.parseInt(values.get(0));
+                } catch (NumberFormatException e) {
+                    return "";
+                }
+
+                if (place < 1)
+                    return "";
+
+                list = Jobs.getJobsDAO().getGlobalTopList();
+
+                if (list.size() < place)
+                    return "";
+
+                return list.get(place - 1).getPlayerInfo().getName();
             case jtop_displayname_$1_$2:
                 if (values.size() < 2)
                     return "";
@@ -650,6 +675,26 @@ public class Placeholder {
                     return "";
 
                 list = Jobs.getJobsDAO().getTopListByJob(jo, 15);
+
+                if (list.size() < place)
+                    return "";
+
+                return list.get(place - 1).getPlayerInfo().getDisplayName();
+            case jtop_displayname_total_$1:
+                if (values.isEmpty())
+                    return "";
+
+                place = 0;
+                try {
+                    place = Integer.parseInt(values.get(0));
+                } catch (NumberFormatException e) {
+                    return "";
+                }
+
+                if (place < 1)
+                    return "";
+
+                list = Jobs.getJobsDAO().getGlobalTopList();
 
                 if (list.size() < place)
                     return "";
@@ -675,6 +720,26 @@ public class Placeholder {
                     return "";
 
                 return String.valueOf(list.get(place - 1).getLevel());
+            case jtop_level_total_$1:
+                if (values.isEmpty())
+                    return "";
+
+                place = 0;
+                try {
+                    place = Integer.parseInt(values.get(0));
+                } catch (NumberFormatException e) {
+                    return "";
+                }
+
+                if (place < 1)
+                    return "";
+
+                list = Jobs.getJobsDAO().getGlobalTopList();
+
+                if (list.size() < place)
+                    return "";
+
+                return String.valueOf(list.get(place - 1).getPlayerInfo().getJobsPlayer().getTotalLevels());
             case name_$1:
                 return jo.getName();
             case shortname_$1:
