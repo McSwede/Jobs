@@ -1175,9 +1175,8 @@ public final class JobsPaymentListener implements Listener {
             if (jPlayer.hasBlockOwnerShipInform(lc))
                 return;
 
-            CMIMessages.sendMessage(player, Jobs.getLanguage().getMessage("general.error.blockDisabled",
-                "[type]", CMIMaterial.get(block).getName(),
-                "[location]", LC.Location_Full.getLocale(block.getLocation())));
+            // CHANGED: Disabled annoying message
+            //CMIMessages.sendMessage(player, Jobs.getLanguage().getMessage("general.error.blockDisabled", "[type]", CMIMaterial.get(block).getName(), "[location]", LC.Location_Full.getLocale(block.getLocation())));
             jPlayer.addBlockOwnerShipInform(lc);
         });
     }
@@ -1840,8 +1839,9 @@ public final class JobsPaymentListener implements Listener {
                 } else
                     report = true;
 
-                if (report)
-                    CMIActionBar.send(p, Jobs.getLanguage().getMessage("general.error.noRegistration", "[block]", name));
+                // CHANGED: Removed annoying message
+                //if (report)
+                    //CMIActionBar.send(p, Jobs.getLanguage().getMessage("general.error.noRegistration", "[block]", name));
             } else if (done == ownershipFeedback.newReg && jPlayer != null && jPlayer.getMaxOwnerShipAllowed(blockOwner.getType()) > 0) {
 
                 CMIActionBar.send(p, Jobs.getLanguage().getMessage("general.error.newRegistration", "[block]", name,
