@@ -39,19 +39,16 @@ import com.gamingmesh.jobs.ItemBoostManager;
 import com.gamingmesh.jobs.Jobs;
 import com.gamingmesh.jobs.Gui.GuiItem;
 import com.gamingmesh.jobs.container.ActionType;
-import com.gamingmesh.jobs.container.BoostMultiplier;
 import com.gamingmesh.jobs.container.CurrencyType;
 import com.gamingmesh.jobs.container.DisplayMethod;
 import com.gamingmesh.jobs.container.Job;
 import com.gamingmesh.jobs.container.JobCommands;
 import com.gamingmesh.jobs.container.JobConditions;
 import com.gamingmesh.jobs.container.JobInfo;
-import com.gamingmesh.jobs.container.JobItems;
 import com.gamingmesh.jobs.container.JobLimitedItems;
 import com.gamingmesh.jobs.container.JobPermission;
 import com.gamingmesh.jobs.container.Quest;
 import com.gamingmesh.jobs.container.QuestObjective;
-import com.gamingmesh.jobs.listeners.JobsListener;
 import com.gamingmesh.jobs.stuff.Util;
 
 import net.Zrips.CMILib.Colors.CMIChatColor;
@@ -64,7 +61,6 @@ import net.Zrips.CMILib.FileHandler.ConfigReader;
 import net.Zrips.CMILib.Items.CMIAsyncHead;
 import net.Zrips.CMILib.Items.CMIItemStack;
 import net.Zrips.CMILib.Items.CMIMaterial;
-import net.Zrips.CMILib.Logs.CMIDebug;
 import net.Zrips.CMILib.Messages.CMIMessages;
 import net.Zrips.CMILib.Version.Version;
 
@@ -384,6 +380,9 @@ public class ConfigManager {
         cfg.addComment(pt + ".PyroFishingPro", "Catching CUSTOM fish of the PyroFishingPro plugin");
         generate(cfg, pt + ".PyroFishingPro.CustomTier");
 
+        cfg.addComment(pt + ".CustomFishing", "Catching CUSTOM fish of the CustomFishing plugin");
+        generate(cfg, pt + ".CustomFishing.CustomFishId");
+
         cfg.addComment(pt + ".Repair", "Repairing items");
         generate(cfg, pt + ".Repair.wood_sword");
         generate(cfg, pt + ".Repair.iron_sword");
@@ -410,7 +409,7 @@ public class ConfigManager {
         cfg.addComment(pt + ".Brew", "Brewing miscellaneous items");
         generate(cfg, pt + ".Brew.nether_stalk");
         generate(cfg, pt + ".Brew.redstone");
-        
+
         cfg.addComment(pt + ".Brush", "Brushing blocks and getting items from them");
         generate(cfg, pt + ".Brush.suspicious_sand");
         generate(cfg, pt + ".Brush.suspicious_gravel");
@@ -594,6 +593,7 @@ public class ConfigManager {
         case MILK:
         case MMKILL:
         case PYROFISHINGPRO:
+        case CUSTOMFISHING:
         case BREED:
         case TAME:
         case SHEAR:
@@ -795,7 +795,8 @@ public class ConfigManager {
             type = cmiEnchant != null ? cmiEnchant.getKeyName() : myKey;
 
         } else if (actionType == ActionType.CUSTOMKILL || actionType == ActionType.COLLECT || actionType == ActionType.MMKILL
-            || actionType == ActionType.BAKE || actionType == ActionType.SMELT || actionType == ActionType.PYROFISHINGPRO) {
+            || actionType == ActionType.BAKE || actionType == ActionType.SMELT || actionType == ActionType.PYROFISHINGPRO
+            || actionType == ActionType.CUSTOMFISHING) {
             type = myKey;
         } else if (actionType == ActionType.EXPLORE) {
             type = myKey;
@@ -810,10 +811,10 @@ public class ConfigManager {
 
             Jobs.getExploreManager().setExploreEnabled();
             Jobs.getExploreManager().setPlayerAmount(amount);
-            
+
             Jobs.getChunkExplorationManager().setExploreEnabled();
-	    Jobs.getChunkExplorationManager().setPlayerAmount(amount);
-	    
+            Jobs.getChunkExplorationManager().setPlayerAmount(amount);
+
         } else if (actionType == ActionType.CRAFT) {
             if (myKey.startsWith("!")) {
                 type = myKey.substring(1, myKey.length());
@@ -840,12 +841,12 @@ public class ConfigManager {
             meta = "ALL";
             // case for ":all" identifier
             type = (actionType == ActionType.SHEAR && myKey.startsWith("color")) ? "color" : CMIMaterial.getGeneralMaterialName(type);
-            
+
             CMIEntityType entity = CMIEntityType.get(type);
             if (entity != null) {
-		type = entity.toString();
-	    }
-            
+                type = entity.toString();
+            }
+
         }
 
         if (actionType == ActionType.TNTBREAK)

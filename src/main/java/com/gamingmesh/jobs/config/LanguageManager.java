@@ -332,7 +332,7 @@ public class LanguageManager {
             c.get("command.archive.help.info", "Shows all jobs saved in archive by user.");
             c.get("command.archive.help.args", "[playername]");
             Jobs.getGCManager().getCommandArgs().put("archive", Arrays.asList("[playername]"));
-            c.get("command.archive.error.nojob", "There is no jobs saved.");
+            c.get("command.archive.error.nojob", "There are no jobs saved.");
 
             c.get("command.give.help.info", "Gives item by jobs name and item category name. Player name is optional");
             c.get("command.give.help.args", "[playername] [jobname] [items/limiteditems] [jobitemname]");
@@ -389,6 +389,8 @@ public class LanguageManager {
             c.get("command.info.output.fish.none", "%jobname% does not get money from fishing.");
             c.get("command.info.output.pyrofishingpro.info", "&eFish");
             c.get("command.info.output.pyrofishingpro.none", "%jobname% does not get money from fishing.");
+            c.get("command.info.output.customfishing.info", "&eFish");
+            c.get("command.info.output.customfishing.none", "%jobname% does not get money from fishing.");
             c.get("command.info.output.craft.info", "&eCraft");
             c.get("command.info.output.craft.none", "%jobname% does not get money from crafting.");
             c.get("command.info.output.smelt.info", "&eSmelt");
@@ -495,7 +497,7 @@ public class LanguageManager {
             c.get("command.clearownership.help.info", "Clear block ownership");
             c.get("command.clearownership.help.args", "[playername]");
             Jobs.getGCManager().getCommandArgs().put("clearownership", Arrays.asList("[playername]"));
-            c.get("command.clearownership.output.cleared", "&2Removed &7[furnaces] &2furnaces, &7[brewing] &2brewing stands, &7[smoker]&2 smokers and &7[blast]&2 blast furnaces.");
+            c.get("command.clearownership.output.cleared", "&2Removed &7[furnaces] &2furnaces &7[brewing] &2brewing &7[smoker]&2 smokers &7[blast]&2 blast");
             c.get("command.clearownership.output.lost", "&cLost ownership of &7[type] &cat [location]");
 
             c.get("command.skipquest.help.info", "Skip defined quest and get new one");

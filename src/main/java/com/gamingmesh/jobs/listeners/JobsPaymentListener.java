@@ -547,48 +547,6 @@ public final class JobsPaymentListener implements Listener {
     }
 
     @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
-    public void onPlayerFish(PlayerFishEvent event) {
-
-        Player player = event.getPlayer();
-
-        if (!Jobs.getGCManager().canPerformActionInWorld(player.getWorld()))
-            return;
-
-        // check if in creative
-        if (!payIfCreative(player))
-            return;
-
-        if (!Jobs.getPermissionHandler().hasWorldPermission(player, player.getWorld().getName()))
-            return;
-
-        // check if player is riding
-        if (Jobs.getGCManager().disablePaymentIfRiding && player.isInsideVehicle() && !player.getVehicle().getType().equals(EntityType.BOAT))
-            return;
-
-        if (!payForItemDurabilityLoss(player))
-            return;
-
-        if (event.getState() == PlayerFishEvent.State.CAUGHT_FISH && event.getCaught() instanceof Item) {
-            // check is mcMMO enabled
-            if (JobsHook.mcMMO.isEnabled()) {
-                McMMOPlayer mcMMOPlayer = UserManager.getPlayer(player);
-                // check is the fishing being exploited. If yes, prevent payment.
-                if (mcMMOPlayer != null && ExperienceConfig.getInstance().isFishingExploitingPrevented()
-                    && mcMMOPlayer.getFishingManager().isExploitingFishing(event.getHook().getLocation().toVector())) {
-                    return;
-                }
-            }
-
-            if (JobsHook.PyroFishingPro.isEnabled() && PyroFishingProManager.getFish() != null) {
-                Jobs.action(Jobs.getPlayerManager().getJobsPlayer(player), new PyroFishingProInfo(PyroFishingProManager.getFish(), ActionType.PYROFISHINGPRO), event.getCaught());
-                return;
-            }
-
-            Jobs.action(Jobs.getPlayerManager().getJobsPlayer(player), new ItemActionInfo(((Item) event.getCaught()).getItemStack(), ActionType.FISH), event.getCaught());
-        }
-    }
-
-    @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
     public void onAnimalTame(EntityTameEvent event) {
         if (!Jobs.getGCManager().canPerformActionInWorld(event.getEntity().getWorld()))
             return;
@@ -1176,7 +1134,9 @@ public final class JobsPaymentListener implements Listener {
                 return;
 
             // CHANGED: Disabled annoying message
-            //CMIMessages.sendMessage(player, Jobs.getLanguage().getMessage("general.error.blockDisabled", "[type]", CMIMaterial.get(block).getName(), "[location]", LC.Location_Full.getLocale(block.getLocation())));
+            /*CMIMessages.sendMessage(player, Jobs.getLanguage().getMessage("general.error.blockDisabled",
+                "[type]", Jobs.getNameTranslatorManager().translate(CMIMaterial.get(block)),
+                "[location]", LC.Location_Full.getLocale(block.getLocation())));*/
             jPlayer.addBlockOwnerShipInform(lc);
         });
     }
@@ -1304,9 +1264,10 @@ public final class JobsPaymentListener implements Listener {
 
         if (!(event.getEntity().getLastDamageCause() instanceof EntityDamageByEntityEvent)) {
             killer = entityLastDamager.getIfPresent(event.getEntity().getUniqueId());
-        } else if (event.getEntity().getLastDamageCause().getCause() == EntityDamageEvent.DamageCause.PROJECTILE) {
-            if (event.getEntity().getLastDamageCause().getDamageSource() != null)
-                killer = event.getEntity().getLastDamageCause().getDamageSource().getCausingEntity();
+        } else if (event.getEntity().getLastDamageCause() instanceof EntityDamageByEntityEvent) {
+            EntityDamageByEntityEvent entityEvent = (EntityDamageByEntityEvent) event.getEntity().getLastDamageCause();
+            if (entityEvent.getDamager() != null)
+                killer = entityEvent.getDamager();
         } else {
             killer = ((EntityDamageByEntityEvent) event.getEntity().getLastDamageCause()).getDamager();
         }

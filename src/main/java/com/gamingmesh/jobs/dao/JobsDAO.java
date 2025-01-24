@@ -13,6 +13,7 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
@@ -44,7 +45,6 @@ import com.gamingmesh.jobs.economy.PaymentData;
 import com.gamingmesh.jobs.stuff.ToggleBarHandling;
 import com.gamingmesh.jobs.stuff.Util;
 
-import net.Zrips.CMILib.Logs.CMIDebug;
 import net.Zrips.CMILib.Messages.CMIMessages;
 import net.Zrips.CMILib.Time.CMITimeManager;
 import net.Zrips.CMILib.Version.Schedulers.CMIScheduler;
@@ -580,7 +580,7 @@ public abstract class JobsDAO {
         return prefix;
     }
 
-    public List<JobsDAOData> getAllJobs(OfflinePlayer player) {
+    public CompletableFuture<List<JobsDAOData>> getAllJobs(OfflinePlayer player) {
         return getAllJobs(player.getName(), player.getUniqueId());
     }
 
@@ -590,47 +590,49 @@ public abstract class JobsDAO {
      * @return list of all of the names of the jobs the players are part of.
      */
 
-    public List<JobsDAOData> getAllJobs(String playerName, UUID uuid) {
-        PlayerInfo userData = null;
-        if (Jobs.getGCManager().MultiServerCompatability())
-            userData = loadPlayerData(uuid);
-        else
-            userData = Jobs.getPlayerManager().getPlayerInfo(uuid);
+    public CompletableFuture<List<JobsDAOData>> getAllJobs(String playerName, UUID uuid) {
+        return CompletableFuture.supplyAsync(() -> {
+            PlayerInfo userData = null;
+            if (Jobs.getGCManager().MultiServerCompatability())
+                userData = loadPlayerData(uuid);
+            else
+                userData = Jobs.getPlayerManager().getPlayerInfo(uuid);
 
-        List<JobsDAOData> jobs = new ArrayList<>();
+            List<JobsDAOData> jobs = new ArrayList<>();
 
-        if (userData == null) {
-            recordNewPlayer(playerName, uuid);
-            return jobs;
-        }
-
-        JobsConnection conn = getConnection();
-        if (conn == null)
-            return jobs;
-
-        PreparedStatement prest = null;
-        ResultSet res = null;
-        try {
-            prest = conn.prepareStatement("SELECT * FROM `" + getJobsTableName() + "` WHERE `" + JobsTableFields.userid.getCollumn() + "` = ?;");
-            prest.setInt(1, userData.getID());
-            res = prest.executeQuery();
-            while (res.next()) {
-                int jobId = res.getInt(JobsTableFields.jobid.getCollumn());
-                if (jobId == 0) {
-                    jobs.add(new JobsDAOData(res.getString(JobsTableFields.job.getCollumn()), res.getInt(JobsTableFields.level.getCollumn()), res.getDouble(JobsTableFields.experience.getCollumn())));
-                } else {
-                    Job job = Jobs.getJob(jobId);
-                    if (job != null)
-                        jobs.add(new JobsDAOData(job.getName(), res.getInt(JobsTableFields.level.getCollumn()), res.getDouble(JobsTableFields.experience.getCollumn())));
-                }
+            if (userData == null) {
+                recordNewPlayer(playerName, uuid);
+                return jobs;
             }
-        } catch (SQLException e) {
-            e.printStackTrace();
-        } finally {
-            close(res);
-            close(prest);
-        }
-        return jobs;
+
+            JobsConnection conn = getConnection();
+            if (conn == null)
+                return jobs;
+
+            PreparedStatement prest = null;
+            ResultSet res = null;
+            try {
+                prest = conn.prepareStatement("SELECT * FROM `" + getJobsTableName() + "` WHERE `" + JobsTableFields.userid.getCollumn() + "` = ?;");
+                prest.setInt(1, userData.getID());
+                res = prest.executeQuery();
+                while (res.next()) {
+                    int jobId = res.getInt(JobsTableFields.jobid.getCollumn());
+                    if (jobId == 0) {
+                        jobs.add(new JobsDAOData(res.getString(JobsTableFields.job.getCollumn()), res.getInt(JobsTableFields.level.getCollumn()), res.getDouble(JobsTableFields.experience.getCollumn())));
+                    } else {
+                        Job job = Jobs.getJob(jobId);
+                        if (job != null)
+                            jobs.add(new JobsDAOData(job.getName(), res.getInt(JobsTableFields.level.getCollumn()), res.getDouble(JobsTableFields.experience.getCollumn())));
+                    }
+                }
+            } catch (SQLException e) {
+                e.printStackTrace();
+            } finally {
+                close(res);
+                close(prest);
+            }
+            return jobs;
+        });
     }
 
     public Map<Integer, List<JobsDAOData>> getAllJobs() {
@@ -1785,8 +1787,14 @@ public abstract class JobsDAO {
 
             while (res.next()) {
                 PlayerInfo info = Jobs.getPlayerManager().getPlayerInfo(res.getInt(JobsTableFields.userid.getCollumn()));
-                if (info != null)
-                    jobs.add(new TopList(info, res.getInt(JobsTableFields.level.getCollumn()), res.getInt(JobsTableFields.experience.getCollumn())));
+
+                if (info == null)
+                    continue;
+
+                if (Jobs.getGCManager().JobsTopHiddenPlayers.contains(info.getName().toLowerCase()))
+                    continue;
+
+                jobs.add(new TopList(info, res.getInt(JobsTableFields.level.getCollumn()), res.getInt(JobsTableFields.experience.getCollumn())));
             }
         } catch (SQLException e) {
             e.printStackTrace();
@@ -1800,12 +1808,22 @@ public abstract class JobsDAO {
         return jobs;
     }
 
+    List<TopList> GTopListByJobCache = new ArrayList<TopList>();
+    Long GTopListByJobUpdateCache = 0L;
+
     /**
      * Get player list by total job level
      * @param start - starting entry
      * @return info - information about jobs
      */
     public List<TopList> getGlobalTopList(int start) {
+
+        if (System.currentTimeMillis() - GTopListByJobUpdateCache < 30 * 1000L) {
+            return GTopListByJobCache;
+        }
+
+        GTopListByJobUpdateCache = System.currentTimeMillis();
+
         JobsConnection conn = getConnection();
         List<TopList> names = new ArrayList<>();
         if (conn == null)
@@ -1831,6 +1849,9 @@ public abstract class JobsDAO {
                 if (info == null)
                     continue;
 
+                if (Jobs.getGCManager().JobsTopHiddenPlayers.contains(info.getName().toLowerCase()))
+                    continue;
+
                 names.add(new TopList(info, res.getInt("totallvl"), res.getInt("totalexp")));
 
                 if (names.size() >= jobsTopAmount)
@@ -1842,7 +1863,7 @@ public abstract class JobsDAO {
             close(res);
             close(prest);
         }
-
+        GTopListByJobCache = names;
         return names;
     }
 
@@ -1969,25 +1990,27 @@ public abstract class JobsDAO {
         }
     }
 
-    public JobsPlayer loadFromDao(JobsPlayer jPlayer) {
-        List<JobsDAOData> list = getAllJobs(jPlayer.getName(), jPlayer.getUniqueId());
-        jPlayer.progression.clear();
-        for (JobsDAOData jobdata : list) {
-            if (!plugin.isEnabled())
-                return null;
+    public CompletableFuture<JobsPlayer> loadFromDao(JobsPlayer jPlayer) {
+        return CompletableFuture.supplyAsync(() -> {
+            List<JobsDAOData> list = getAllJobs(jPlayer.getName(), jPlayer.getUniqueId()).join();
+            jPlayer.progression.clear();
+            for (JobsDAOData jobdata : list) {
+                if (!plugin.isEnabled())
+                    return null;
 
-            // add the job
-            Job job = Jobs.getJob(jobdata.getJobName());
-            if (job != null)
-                jPlayer.progression.add(new JobProgression(job, jPlayer, jobdata.getLevel(), jobdata.getExperience()));
-        }
-        jPlayer.reloadMaxExperience();
-        jPlayer.reloadLimits();
-        jPlayer.setUserId(Jobs.getPlayerManager().getPlayerId(jPlayer.getUniqueId()));
-        return jPlayer;
+                // add the job
+                Job job = Jobs.getJob(jobdata.getJobName());
+                if (job != null)
+                    jPlayer.progression.add(new JobProgression(job, jPlayer, jobdata.getLevel(), jobdata.getExperience()));
+            }
+            jPlayer.reloadMaxExperience();
+            jPlayer.reloadLimits();
+            jPlayer.setUserId(Jobs.getPlayerManager().getPlayerId(jPlayer.getUniqueId()));
+            return jPlayer;
+        });
     }
 
-    public JobsPlayer loadFromDao(OfflinePlayer player) {
+    public CompletableFuture<JobsPlayer> loadFromDao(OfflinePlayer player) {
         JobsPlayer jPlayer = new JobsPlayer(player);
         return loadFromDao(jPlayer);
     }

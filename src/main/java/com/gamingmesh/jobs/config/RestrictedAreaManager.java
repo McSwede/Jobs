@@ -31,7 +31,6 @@ import com.gamingmesh.jobs.hooks.HookManager;
 import net.Zrips.CMILib.Container.CMINumber;
 import net.Zrips.CMILib.Container.CMIText;
 import net.Zrips.CMILib.Container.CuboidArea.ChunkRef;
-import net.Zrips.CMILib.Logs.CMIDebug;
 import net.Zrips.CMILib.Messages.CMIMessages;
 
 public class RestrictedAreaManager {
@@ -111,7 +110,7 @@ public class RestrictedAreaManager {
             conf.set("restrictedareas." + areaKey + ".enabled", area.isEnabled());
 
             for (Entry<CurrencyType, Double> one : area.getMultipliers().entrySet()) {
-                conf.set("restrictedareas." + areaKey + ".multipliers." + one.getKey(), one.getValue());
+                conf.set("restrictedareas." + areaKey + ".multipliers." + CMIText.firstToUpperCase(one.getKey().name()), one.getValue());
             }
 
             if (area.getWgName() == null) {

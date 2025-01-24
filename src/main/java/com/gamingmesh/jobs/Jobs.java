@@ -28,17 +28,20 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import java.util.Random;
 import java.util.UUID;
 import java.util.WeakHashMap;
 import java.util.logging.Logger;
 
+import com.gamingmesh.jobs.listeners.*;
 import org.bukkit.Bukkit;
 import org.bukkit.block.Block;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Player;
 import org.bukkit.event.HandlerList;
+import org.bukkit.inventory.meta.ItemMeta;
+import org.bukkit.plugin.Plugin;
+import org.bukkit.plugin.PluginManager;
 import org.bukkit.plugin.java.JavaPlugin;
 
 import com.gamingmesh.jobs.Gui.GuiManager;
@@ -96,15 +99,6 @@ import com.gamingmesh.jobs.economy.Economy;
 import com.gamingmesh.jobs.economy.PaymentData;
 import com.gamingmesh.jobs.hooks.HookManager;
 import com.gamingmesh.jobs.i18n.Language;
-import com.gamingmesh.jobs.listeners.JobsListener;
-import com.gamingmesh.jobs.listeners.JobsPayment1_14Listener;
-import com.gamingmesh.jobs.listeners.JobsPayment1_16Listener;
-import com.gamingmesh.jobs.listeners.JobsPayment1_20Listener;
-import com.gamingmesh.jobs.listeners.JobsPayment1_9Listener;
-import com.gamingmesh.jobs.listeners.JobsPaymentListener;
-import com.gamingmesh.jobs.listeners.JobsPaymentVisualizationListener;
-import com.gamingmesh.jobs.listeners.PistonProtectionListener;
-import com.gamingmesh.jobs.listeners.PlayerSignEdit1_20Listeners;
 import com.gamingmesh.jobs.selection.SelectionManager;
 import com.gamingmesh.jobs.stuff.Loging;
 import com.gamingmesh.jobs.stuff.TabComplete;
@@ -250,7 +244,7 @@ public final class Jobs extends JavaPlugin {
         return Optional.empty();
     }
 
-    public void removeBlockOwnerShip(org.bukkit.block.Block block) {
+    public void removeBlockOwnerShip(Block block) {
         BlockOwnerShip ship = blockOwnerShipsMaterial.get(CMIMaterial.get(block));
         if (ship != null)
             ship.remove(block);
@@ -273,7 +267,7 @@ public final class Jobs extends JavaPlugin {
     }
 
     private boolean setupPlaceHolderAPI() {
-        org.bukkit.plugin.Plugin papi = getServer().getPluginManager().getPlugin("PlaceholderAPI");
+        Plugin papi = getServer().getPluginManager().getPlugin("PlaceholderAPI");
         if (papi == null || !papi.isEnabled())
             return false;
 
@@ -752,7 +746,7 @@ public final class Jobs extends JavaPlugin {
 
         try {
             Class.forName("net.kyori.adventure.text.Component");
-            org.bukkit.inventory.meta.ItemMeta.class.getDeclaredMethod("displayName");
+            ItemMeta.class.getDeclaredMethod("displayName");
             kyoriSupported = true;
         } catch (NoSuchMethodException | ClassNotFoundException e) {
         }
@@ -817,10 +811,15 @@ public final class Jobs extends JavaPlugin {
 
         CMIMessages.consoleMessage("&eRegistering listeners...");
 
-        org.bukkit.plugin.PluginManager pm = getInstance().getServer().getPluginManager();
-
+        PluginManager pm = getInstance().getServer().getPluginManager();
+        if (getGCManager().useCustomFishingOnly) {
+            pm.registerEvents(new JobsCustomFishingPaymentListener(), getInstance());
+        } else {
+            pm.registerEvents(new JobsDefaultFishPaymentListener(), getInstance());
+        }
         pm.registerEvents(new JobsListener(getInstance()), getInstance());
         pm.registerEvents(new JobsPaymentListener(getInstance()), getInstance());
+
         pm.registerEvents(new JobsPaymentVisualizationListener(getInstance()), getInstance());
 
         if (Version.isCurrentEqualOrHigher(Version.v1_9_R1))
@@ -845,6 +844,9 @@ public final class Jobs extends JavaPlugin {
 
         if (HookManager.checkPyroFishingPro()) {
             HookManager.getPyroFishingProManager().registerListener();
+        }
+        if (HookManager.checkCustomFishing()) {
+            HookManager.getCustomFishingManager().registerListener();
         }
         if (HookManager.getMcMMOManager().CheckmcMMO()) {
             HookManager.setMcMMOlistener();
@@ -936,7 +938,7 @@ public final class Jobs extends JavaPlugin {
         if (dao != null && Jobs.getGeneralConfigManager().ExploreSaveIntoDatabase)
             dao.saveExplore();
 
-        blockOwnerShipsMaterial.values().forEach(BlockOwnerShip::save);
+        BlockOwnerShip.save(blockOwnerShipsMaterial);
 
         if (saveTask != null)
             saveTask.shutdown();
@@ -1047,9 +1049,8 @@ public final class Jobs extends JavaPlugin {
         List<JobProgression> progression = jPlayer.getJobProgression();
         int numjobs = progression.size();
 
-        if (!Jobs.getGCManager().useBlockProtectionBlockTracker && !Jobs.getExploitManager().isProtectionValidAddIfNotExists(jPlayer, info, block, true)) {
+        if (!Jobs.getGCManager().useBlockProtectionBlockTracker && !Jobs.getExploitManager().isProtectionValidAddIfNotExists(jPlayer, info, block, true))
             return;
-        }
 
         // no job
         if (numjobs == 0) {
@@ -1208,7 +1209,7 @@ public final class Jobs extends JavaPlugin {
 
                 Boost boost = getPlayerManager().getFinalBonus(jPlayer, prog.getJob(), ent, victim);
 
-                JobsPrePaymentEvent jobsPrePaymentEvent = new JobsPrePaymentEvent(jPlayer.getPlayer(), prog.getJob(), income, expAmount, pointAmount, block, ent, victim, info);
+                JobsPrePaymentEvent jobsPrePaymentEvent = new JobsPrePaymentEvent(jPlayer.getPlayer(), prog.getJob(), CurrencyType.generate(income, expAmount, pointAmount), block, ent, victim, info);
 
                 Bukkit.getServer().getPluginManager().callEvent(jobsPrePaymentEvent);
                 // If event is canceled, don't do anything
@@ -1387,10 +1388,13 @@ public final class Jobs extends JavaPlugin {
     }
 
     public static void perform(JobsPlayer jPlayer, ActionInfo info, BufferedPayment payment, Job job, Block block, Entity ent, LivingEntity victim) {
+
+        // Need to clone
+        payment = new BufferedPayment(jPlayer.getPlayer(), payment.getPayment());
+
         double expPayment = payment.get(CurrencyType.EXP);
 
-        JobsPrePaymentEvent jobsPrePaymentEvent = new JobsPrePaymentEvent(jPlayer.getPlayer(), job, payment.get(CurrencyType.MONEY),
-            payment.get(CurrencyType.POINTS), block, ent, victim, info);
+        JobsPrePaymentEvent jobsPrePaymentEvent = new JobsPrePaymentEvent(jPlayer.getPlayer(), job, payment.getPayment(), block, ent, victim, info);
         Bukkit.getServer().getPluginManager().callEvent(jobsPrePaymentEvent);
         // If event is canceled, don't do anything
         if (jobsPrePaymentEvent.isCancelled())

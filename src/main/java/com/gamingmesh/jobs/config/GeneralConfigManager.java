@@ -40,7 +40,6 @@ import com.gamingmesh.jobs.container.CurrencyType;
 import com.gamingmesh.jobs.container.MessageToggleState;
 
 import net.Zrips.CMILib.CMILib;
-import net.Zrips.CMILib.Container.CMIArray;
 import net.Zrips.CMILib.Container.CMIList;
 import net.Zrips.CMILib.Container.CMINumber;
 import net.Zrips.CMILib.Enchants.CMIEnchantment;
@@ -74,6 +73,8 @@ public class GeneralConfigManager {
         SoundTitleChangeSound, ServerAccountName, ServertaxesAccountName, localeString = "";
     private String getSelectionTool, DecimalPlacesMoney, DecimalPlacesExp, DecimalPlacesPoints;
 
+    public List<String> JobsTopHiddenPlayers;
+    
     public int jobExpiryTime, BlockProtectionDays, FireworkPower, ShootTime, blockOwnershipRange,
         globalblocktimer, globalBlockBreakTimer, CowMilkingTimer, InfoUpdateInterval, JobsTopAmount, PlaceholdersPage, ConfirmExpiryTime,
         SegmentCount, BossBarTimer, AutoJobJoinDelay, DBCleaningJobsLvl, DBCleaningUsersDays, BlastFurnacesMaxDefault, SmokersMaxDefault,
@@ -113,7 +114,7 @@ public class GeneralConfigManager {
         BossBarEnabled = false, ActionBarEnabled, ExploreCompact, ExploreSaveIntoDatabase = false, DBCleaningJobsUse, DBCleaningUsersUse,
         DisabledWorldsUse, UseAsWhiteListWorldList, MythicMobsEnabled,
         LoggingUse, payForCombiningItems, BlastFurnacesReassign = false, SmokerReassign = false, payForStackedEntities, payForAbove = false,
-        payForEachVTradeItem, allowEnchantingBoostedItems, preventShopItemEnchanting;
+        payForEachVTradeItem, allowEnchantingBoostedItems, preventShopItemEnchanting, useCustomFishingOnly = false;
     public MessageToggleState BossBarsMessageDefault = MessageToggleState.Rapid;
     public MessageToggleState ActionBarsMessageDefault = MessageToggleState.Rapid;
     public MessageToggleState ChatTextMessageDefault = MessageToggleState.Batched;
@@ -870,17 +871,18 @@ public class GeneralConfigManager {
         FurnacesMaxDefault = c.get("ExploitProtections.Furnaces.MaxDefaultAvailable", 20);
 
         if (Version.isCurrentEqualOrHigher(Version.v1_14_R1)) {
-            BlastFurnacesReassign = c.get("ExploitProtections.BlastFurnaces.Reassign", false);
+            BlastFurnacesReassign = c.get("ExploitProtections.BlastFurnaces.Reassign", true);
             BlastFurnacesMaxDefault = c.get("ExploitProtections.BlastFurnaces.MaxDefaultAvailable", 15);
 
-            SmokerReassign = c.get("ExploitProtections.Smokers.Reassign", false);
+            SmokerReassign = c.get("ExploitProtections.Smokers.Reassign", true);
             SmokersMaxDefault = c.get("ExploitProtections.Smokers.MaxDefaultAvailable", 15);
-        }
+        } 
 
         c.addComment("ExploitProtections.BrewingStands.Reassign",
             "When enabled, players interacted brewing stands will be saved into file and will be reassigned after restart to keep giving out money",
             "Players will no longer need to click on brewing stand to get paid from it after server restart");
         BrewingStandsReassign = c.get("ExploitProtections.BrewingStands.Reassign", true);
+        
         c.addComment("ExploitProtections.BrewingStands.MaxDefaultAvailable",
             "Defines max available brewing stands each player can have to get paid from",
             "Set to 0 if you want to disable this limitation",
@@ -960,6 +962,9 @@ public class GeneralConfigManager {
 
         c.addComment("ExploitProtections.MythicMobs", "MythicMobs plugin support", "Disable if you having issues with it or using old version");
         MythicMobsEnabled = c.get("ExploitProtections.MythicMobs.enabled", true);
+
+        c.addComment("ExploitProtections.CustomFishing", "CustomFishing plugin support (Optional)", "If setting is enabled, Fish and PyroFishingPro actions are disabled and only CustomFishing action is enabled.", "Leave it disabled if you're not experiencing issues because of CustomFishing Plugin.");
+        useCustomFishingOnly = c.get("ExploitProtections.CustomFishing.Use-CustomFishing-Only", false);
 
         // Only applies for older versions.
         if (Version.isCurrentLower(Version.v1_14_R1)) {
@@ -1187,6 +1192,12 @@ public class GeneralConfigManager {
 
         c.addComment("Commands.PageRow.JobsTop.AmountToShow", "Defines amount of players to be shown in one page for /jobs top & /jobs gtop");
         JobsTopAmount = c.get("Commands.PageRow.JobsTop.AmountToShow", 15);
+        
+        
+        c.addComment("Commands.PageRow.JobsTop.HiddenPlayers", "List of player names who should be excluded from /jobs top & /jobs gtop");
+        JobsTopHiddenPlayers = c.get("Commands.PageRow.JobsTop.HiddenPlayers", Arrays.asList("Zrips"));
+        CMIList.toLowerCase(JobsTopHiddenPlayers);
+        
         c.addComment("Commands.PageRow.Placeholders.AmountToShow", "Defines amount of placeholders to be shown in one page for /jobs placeholders");
         PlaceholdersPage = c.get("Commands.PageRow.Placeholders.AmountToShow", 10);
         c.addComment("Commands.JobsLeave.UsePerPermissionLeave", "Defines how job leave works.",
