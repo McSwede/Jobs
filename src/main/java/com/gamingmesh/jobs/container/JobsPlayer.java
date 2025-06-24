@@ -472,7 +472,7 @@ public class JobsPlayer {
     /**
      * @return an unmodifiable list of job progressions
      */
-    public List<JobProgression> getJobProgression() {
+    public synchronized List<JobProgression> getJobProgression() {
         return Collections.unmodifiableList(progression);
     }
 
@@ -653,6 +653,10 @@ public class JobsPlayer {
     public boolean leaveJob(Job job) {
         synchronized (progression) {
             if (progression.remove(getJobProgression(job))) {
+
+                job.removeFromTop(getUniqueId());
+                JobsTop.updateGlobalTop(getUniqueId(), getJobProgression());
+
                 reloadMaxExperience();
                 reloadLimits();
                 reloadHonorific();
@@ -1380,17 +1384,19 @@ public class JobsPlayer {
 
     public void setDoneQuests(int doneQuests) {
         this.doneQuests = doneQuests;
+        JobsQuestTop.updateGlobalTop(this.getUniqueId(), doneQuests);
     }
 
     private CMITask questSignUpdateShed;
 
     public void addDoneQuest(final Job job) {
-        doneQuests++;
+
+        setDoneQuests(getDoneQuests() + 1);
 
         setSaved(false);
 
         if (questSignUpdateShed == null) {
-            questSignUpdateShed = CMIScheduler.get().runTaskLater(() -> {
+            questSignUpdateShed = CMIScheduler.runTaskLater(plugin, () -> {
                 Jobs.getSignUtil().signUpdate(job, SignTopType.questtoplist);
                 questSignUpdateShed = null;
             }, Jobs.getGCManager().getSavePeriod() * 60 * 20L);
@@ -1403,7 +1409,7 @@ public class JobsPlayer {
      */
     @Deprecated
     public int getFurnaceCount() {
-        return !plugin.getBlockOwnerShip(BlockTypes.FURNACE).isPresent() ? 0 : plugin.getBlockOwnerShip(BlockTypes.FURNACE).get().getTotal(getUniqueId());
+        return getOwnerShipCount(BlockTypes.FURNACE);
     }
 
     /**
@@ -1412,7 +1418,11 @@ public class JobsPlayer {
      */
     @Deprecated
     public int getBrewingStandCount() {
-        return !plugin.getBlockOwnerShip(BlockTypes.BREWING_STAND).isPresent() ? 0 : plugin.getBlockOwnerShip(BlockTypes.BREWING_STAND).get().getTotal(getUniqueId());
+        return getOwnerShipCount(BlockTypes.BREWING_STAND);
+    }
+
+    public int getOwnerShipCount(BlockTypes type) {
+        return !plugin.getBlockOwnerShip(type).isPresent() ? 0 : plugin.getBlockOwnerShip(type).get().getTotal(getUniqueId());
     }
 
     /**
@@ -1445,32 +1455,12 @@ public class JobsPlayer {
      */
     public int getMaxOwnerShipAllowed(BlockTypes type) {
         double maxV = Jobs.getPermissionManager().getMaxPermission(this, "jobs.maxownership");
-        if (maxV > 0D) {
+        if (maxV > 0D)
             return (int) maxV;
-        }
 
-        if (type != BlockTypes.BREWING_STAND &&
-            (maxV = Jobs.getPermissionManager().getMaxPermission(this, "jobs.maxfurnaceownership")) > 0D) {
-            return (int) maxV;
-        }
-
-        String perm = "jobs.max" + (type == BlockTypes.FURNACE
-            ? "furnaces" : type == BlockTypes.BLAST_FURNACE ? "blastfurnaces" : type == BlockTypes.SMOKER ? "smokers"
-                : type == BlockTypes.BREWING_STAND ? "brewingstands" : "");
-
-        maxV = Jobs.getPermissionManager().getMaxPermission(this, perm);
-
-        if (maxV == 0D && type == BlockTypes.FURNACE)
-            maxV = Jobs.getGCManager().getFurnacesMaxDefault();
-
-        if (maxV == 0D && type == BlockTypes.BLAST_FURNACE)
-            maxV = Jobs.getGCManager().BlastFurnacesMaxDefault;
-
-        if (maxV == 0D && type == BlockTypes.SMOKER)
-            maxV = Jobs.getGCManager().SmokersMaxDefault;
-
-        if (maxV == 0D && type == BlockTypes.BREWING_STAND)
-            maxV = Jobs.getGCManager().getBrewingStandsMaxDefault();
+        maxV = Jobs.getPermissionManager().getMaxPermission(this, "jobs.max" + type.getPermissionNode());
+        if (maxV <= 0D)
+            maxV = type.getMaxDefault();
 
         return (int) maxV;
     }
@@ -1534,4 +1524,5 @@ public class JobsPlayer {
             return Jobs.getEconomy().getEconomy().withdrawPlayer(this.getPlayer(), amount);
         return Jobs.getEconomy().getEconomy().withdrawPlayer(this.getName(), amount);
     }
+
 }

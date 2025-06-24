@@ -19,10 +19,11 @@ import com.gamingmesh.jobs.container.CurrencyType;
 import com.gamingmesh.jobs.container.Job;
 import com.gamingmesh.jobs.container.JobProgression;
 import com.gamingmesh.jobs.container.JobsPlayer;
+import com.gamingmesh.jobs.container.JobsTop;
+import com.gamingmesh.jobs.container.JobsTop.topStats;
 import com.gamingmesh.jobs.container.Quest;
 import com.gamingmesh.jobs.container.QuestProgression;
 import com.gamingmesh.jobs.container.Title;
-import com.gamingmesh.jobs.container.TopList;
 import com.gamingmesh.jobs.container.blockOwnerShip.BlockOwnerShip;
 import com.gamingmesh.jobs.container.blockOwnerShip.BlockTypes;
 
@@ -91,12 +92,12 @@ public class Placeholder {
         user_archived_jobs_level_$1("jname/number"),
         user_archived_jobs_exp_$1("jname/number"),
 
-        jtop_name_$1_$2("jname/number", "[1-15]"),
-        jtop_name_total_$1("[1-15]"),
-        jtop_displayname_$1_$2("jname/number", "[1-15]"),
-        jtop_displayname_total_$1("[1-15]"),
-        jtop_level_$1_$2("jname/number", "[1-15]"),
-        jtop_level_total_$1("[1-15]"),
+        jtop_name_$1_$2("jname/number", "1-15"),
+        jtop_name_total_$1("1-15"),
+        jtop_displayname_$1_$2("jname/number", "1-15"),
+        jtop_displayname_total_$1("1-15"),
+        jtop_level_$1_$2("jname/number", "1-15"),
+        jtop_level_total_$1("1-15"),
 
         maxjobs,
         total_workers,
@@ -107,6 +108,7 @@ public class Placeholder {
 
         name_$1("jname/number"),
         shortname_$1("jname/number"),
+        fullname_$1("jname/number"),
         chatcolor_$1("jname/number"),
         description_$1("jname/number"),
         maxdailyq_$1("jname/number"),
@@ -410,7 +412,7 @@ public class Placeholder {
         return null;
     }
 
-    private String simplifyDouble(double value) {
+    private static String simplifyDouble(double value) {
         return String.valueOf((int) (value * 100) / 100D);
     }
 
@@ -437,11 +439,11 @@ public class Placeholder {
             case user_id:
                 return Integer.toString(user.getUserId());
             case user_bstandcount:
-                return Integer.toString(user.getBrewingStandCount());
+                return Integer.toString(user.getOwnerShipCount(BlockTypes.BREWING_STAND));
             case user_maxbstandcount:
                 return Integer.toString(user.getMaxOwnerShipAllowed(BlockTypes.BREWING_STAND));
             case user_furncount:
-                return Integer.toString(user.getFurnaceCount());
+                return Integer.toString(user.getOwnerShipCount(BlockTypes.FURNACE));
             case user_maxfurncount:
                 return Integer.toString(user.getMaxOwnerShipAllowed(BlockTypes.FURNACE));
             case user_smokercount:
@@ -621,6 +623,8 @@ public class Placeholder {
             // Global placeholders by jobname
             switch (placeHolder) {
             case jtop_name_$1_$2:
+            case jtop_displayname_$1_$2:
+            case jtop_level_$1_$2:
                 if (values.size() < 2)
                     return "";
 
@@ -634,92 +638,32 @@ public class Placeholder {
                 if (place < 1)
                     return "";
 
-                List<TopList> list = Jobs.getJobsDAO().getTopListByJob(jo, 15);
-
-                if (list.size() < place)
+                uuid = jo.getTop(place - 1);
+                if (uuid == null)
                     return "";
 
-                return list.get(place - 1).getPlayerInfo().getName();
+                user = Jobs.getPlayerManager().getJobsPlayer(uuid);
+
+                if (user == null)
+                    return "";
+
+                if (placeHolder.equals(JobsPlaceHolders.jtop_name_$1_$2))
+                    return user.getName();
+
+                if (placeHolder.equals(JobsPlaceHolders.jtop_displayname_$1_$2))
+                    return user.getDisplayName();
+
+                topStats stats = jo.getTopStats(uuid);
+
+                if (stats == null)
+                    return "";
+
+                if (placeHolder.equals(JobsPlaceHolders.jtop_level_$1_$2))
+                    return String.valueOf(stats.getLevel());
+
+                return "";
             case jtop_name_total_$1:
-                if (values.isEmpty())
-                    return "";
-
-                place = 0;
-                try {
-                    place = Integer.parseInt(values.get(0));
-                } catch (NumberFormatException e) {
-                    return "";
-                }
-
-                if (place < 1)
-                    return "";
-
-                list = Jobs.getJobsDAO().getGlobalTopList();
-
-                if (list.size() < place)
-                    return "";
-
-                return list.get(place - 1).getPlayerInfo().getName();
-            case jtop_displayname_$1_$2:
-                if (values.size() < 2)
-                    return "";
-
-                place = 0;
-                try {
-                    place = Integer.parseInt(values.get(1));
-                } catch (NumberFormatException e) {
-                    return "";
-                }
-
-                if (place < 1)
-                    return "";
-
-                list = Jobs.getJobsDAO().getTopListByJob(jo, 15);
-
-                if (list.size() < place)
-                    return "";
-
-                return list.get(place - 1).getPlayerInfo().getDisplayName();
             case jtop_displayname_total_$1:
-                if (values.isEmpty())
-                    return "";
-
-                place = 0;
-                try {
-                    place = Integer.parseInt(values.get(0));
-                } catch (NumberFormatException e) {
-                    return "";
-                }
-
-                if (place < 1)
-                    return "";
-
-                list = Jobs.getJobsDAO().getGlobalTopList();
-
-                if (list.size() < place)
-                    return "";
-
-                return list.get(place - 1).getPlayerInfo().getDisplayName();
-            case jtop_level_$1_$2:
-                if (values.size() < 2)
-                    return "";
-
-                place = 0;
-                try {
-                    place = Integer.parseInt(values.get(1));
-                } catch (NumberFormatException e) {
-                    return "";
-                }
-
-                if (place < 1)
-                    return "";
-
-                list = Jobs.getJobsDAO().getTopListByJob(jo, 15);
-
-                if (list.size() < place)
-                    return "";
-
-                return String.valueOf(list.get(place - 1).getLevel());
             case jtop_level_total_$1:
                 if (values.isEmpty())
                     return "";
@@ -734,16 +678,36 @@ public class Placeholder {
                 if (place < 1)
                     return "";
 
-                list = Jobs.getJobsDAO().getGlobalTopList();
-
-                if (list.size() < place)
+                uuid = JobsTop.getGlobalTop(place - 1);
+                if (uuid == null)
                     return "";
 
-                return String.valueOf(list.get(place - 1).getPlayerInfo().getJobsPlayer().getTotalLevels());
+                user = Jobs.getPlayerManager().getJobsPlayer(uuid);
+
+                if (user == null)
+                    return "";
+
+                if (placeHolder.equals(JobsPlaceHolders.jtop_name_total_$1))
+                    return user.getName();
+
+                if (placeHolder.equals(JobsPlaceHolders.jtop_displayname_total_$1))
+                    return user.getDisplayName();
+
+                stats = JobsTop.getGlobalStats(uuid);
+
+                if (stats == null)
+                    return "";
+
+                if (placeHolder.equals(JobsPlaceHolders.jtop_level_total_$1))
+                    return String.valueOf(stats.getLevel());
+
+                return "";
             case name_$1:
                 return jo.getName();
             case shortname_$1:
                 return jo.getShortName();
+            case fullname_$1:
+                return jo.getJobFullName();
             case chatcolor_$1:
                 return jo.getChatColor().toString();
             case description_$1:

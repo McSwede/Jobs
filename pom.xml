@@ -5,29 +5,25 @@
 	<modelVersion>4.0.0</modelVersion>
 	<groupId>Jobs</groupId>
 	<artifactId>jobs</artifactId>
-	<version>5.2.4.6</version>
+	<version>5.2.6.1</version>
 	<name>Jobs</name>
 	<url>http://maven.apache.org</url>
 
 	<properties>
-		<maven.compiler.source>17</maven.compiler.source>
-		<maven.compiler.target>17</maven.compiler.target>
+		<maven.compiler.source>21</maven.compiler.source>
+		<maven.compiler.target>21</maven.compiler.target>
 		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
 	</properties>
 
 	<dependencies>
+        <!-- Spigot API -->
 		<dependency>
 			<groupId>org.spigotmc</groupId>
 			<artifactId>spigot-api</artifactId>
-			<version>1.20.6-R0.1-SNAPSHOT</version>
+			<version>1.21.5-R0.1-SNAPSHOT</version>
 			<scope>provided</scope>
 		</dependency>
-		<dependency>
-			<groupId>org.spigotmc</groupId>
-			<artifactId>spigot</artifactId>
-			<version>1.20.6-R0.1-SNAPSHOT</version>
-			<scope>provided</scope>
-		</dependency>
+        <!-- Mojang Authlib -->
 		<dependency>
 			<groupId>com.mojang</groupId>
 			<artifactId>authlib</artifactId>
@@ -39,6 +35,12 @@
 			<groupId>com.gmail.nossr50.mcMMO</groupId>
 			<artifactId>mcMMO</artifactId>
 			<version>2.2.004</version>
+			<exclusions>
+				<exclusion>
+					<artifactId>*</artifactId>
+					<groupId>com.sk89q.worldguard</groupId>
+				</exclusion>
+			</exclusions>
 		</dependency>
 		<!-- Vault -->
 		<dependency>
@@ -68,7 +70,7 @@
 		<dependency>
 			<groupId>com.sk89q.worldguard</groupId>
 			<artifactId>worldguard-bukkit</artifactId>
-			<version>7.0.2-SNAPSHOT</version>
+			<version>7.0.12</version>
 			<exclusions>
 				<exclusion>
 					<artifactId>bukkit</artifactId>
@@ -96,7 +98,7 @@
 		<dependency>
 			<groupId>com.sk89q.worldedit</groupId>
 			<artifactId>worldedit-bukkit</artifactId>
-			<version>7.1.0-SNAPSHOT</version>
+			<version>7.3.10</version>
 			<exclusions>
 				<exclusion>
 					<artifactId>bukkit-classloader-check</artifactId>
@@ -134,9 +136,9 @@
 		</dependency>
 		<!-- PlaceholderAPI -->
 		<dependency>
-			<groupId>me.clip</groupId>
+			<groupId>com.github.placeholderapi</groupId>
 			<artifactId>placeholderapi</artifactId>
-			<version>2.10.9</version>
+			<version>2.11.6</version>
 			<scope>provided</scope>
 			<exclusions>
 				<exclusion>
@@ -150,12 +152,12 @@
 			</exclusions>
 		</dependency>
 		<!-- CMILib -->
-		<!--		<dependency>-->
-		<!--			<groupId>com.github.Zrips</groupId>-->
-		<!--			<artifactId>CMILib</artifactId>-->
-		<!--			<version>1.4.7.4</version>-->
-		<!--		</dependency>-->
-		<!--		 WildStacker -->
+		<dependency>
+			<groupId>com.github.Zrips</groupId>
+			<artifactId>CMILib</artifactId>
+			<version>1.5.4.6</version>
+			<scope>provided</scope>
+		</dependency>
 		<dependency>
 			<groupId>com.bgsoftware</groupId>
 			<artifactId>WildStackerAPI</artifactId>
@@ -174,7 +176,7 @@
 			<version>3.11-SNAPSHOT</version>
 			<scope>system</scope>
 			<!--			 Temporary solution for replacing repository -->
-			<systemPath>${basedir}/libs/mypet-3.12.jar</systemPath>
+			<systemPath>${basedir}/libs/mypet-3.12.jar</systemPath> 
 		</dependency>
 		<!-- PyroFishingPro -->
 		<dependency>
@@ -185,21 +187,17 @@
 			<systemPath>${basedir}/libs/PyroFishingPro-4.9.1.jar</systemPath>
 		</dependency>
 		<dependency>
-            <groupId>com.github.Xiao-MoMi</groupId>
-            <artifactId>Custom-Fishing</artifactId>
-            <version>2.2.34</version>
+            <groupId>net.momirealms</groupId>
+            <artifactId>custom-fishing</artifactId>
+            <version>2.3.4</version>
             <scope>provided</scope>
         </dependency>
-		<!-- CMILib -->
-		<dependency>
-			<groupId>net.Zrips</groupId>
-			<artifactId>CMILib</artifactId>
-			<version>1.5.0.2</version>
-			<scope>system</scope>
-			<systemPath>${basedir}/libs/CMILib1.5.2.8.jar</systemPath>
-		</dependency>
 	</dependencies>
 	<repositories>
+		<repository>
+			<id>momirealms</id>
+			<url>https://repo.momirealms.net/releases/</url>
+		</repository>
 		<repository>
 			<id>CodeMC</id>
 			<url>https://repo.codemc.org/repository/maven-public/</url>
@@ -256,10 +254,12 @@
 		<plugins>
 			<!-- Make a Jar -->
 			<plugin>
+                <groupId>org.apache.maven.plugins</groupId>
 				<artifactId>maven-compiler-plugin</artifactId>
+                <version>3.11.0</version>
 				<configuration>
-					<source>1.8</source>
-					<target>1.8</target>
+                    <source>${maven.compiler.source}</source>
+                    <target>${maven.compiler.target}</target>
 				</configuration>
 			</plugin>
 			<plugin>

@@ -11,6 +11,8 @@ import com.gamingmesh.jobs.Jobs;
 import com.gamingmesh.jobs.actions.EnchantActionInfo;
 import com.gamingmesh.jobs.stuff.Util;
 
+import net.Zrips.CMILib.Version.Schedulers.CMIScheduler;
+
 public class QuestProgression {
 
     private Quest quest;
@@ -183,13 +185,20 @@ public class QuestProgression {
 
         jPlayer.addDoneQuest(questJob);
 
-        for (String one : quest.getRewardCmds()) {
-            ServerCommandEvent ev = new ServerCommandEvent(Bukkit.getConsoleSender(), one.replace("[playerName]", player.getName()));
-            Bukkit.getPluginManager().callEvent(ev);
-            if (!ev.isCancelled()) {
-                Bukkit.dispatchCommand(Bukkit.getConsoleSender(), ev.getCommand().startsWith("/") ? ev.getCommand().substring(1) : ev.getCommand());
-            }
+        if (quest.getRewardAmount() > 0) {
+            Jobs.getEconomy().getEconomy().depositPlayer(player, quest.getRewardAmount());
         }
+
+        // Should be run with scheduler to put it on main thread if its not on it
+        CMIScheduler.runTask(Jobs.getInstance(), () -> {
+            for (String one : quest.getRewardCmds()) {
+                ServerCommandEvent ev = new ServerCommandEvent(Bukkit.getConsoleSender(), one.replace("[playerName]", player.getName()));
+                Bukkit.getPluginManager().callEvent(ev);
+                if (!ev.isCancelled()) {
+                    Bukkit.dispatchCommand(Bukkit.getConsoleSender(), ev.getCommand().startsWith("/") ? ev.getCommand().substring(1) : ev.getCommand());
+                }
+            }
+        });
     }
 
     public boolean isGivenReward() {
