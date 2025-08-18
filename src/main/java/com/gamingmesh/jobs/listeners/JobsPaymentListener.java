@@ -127,6 +127,7 @@ import net.Zrips.CMILib.Items.CMIItemStack;
 import net.Zrips.CMILib.Items.CMIMC;
 import net.Zrips.CMILib.Items.CMIMaterial;
 import net.Zrips.CMILib.Locale.LC;
+import net.Zrips.CMILib.Logs.CMIDebug;
 import net.Zrips.CMILib.Messages.CMIMessages;
 import net.Zrips.CMILib.PersistentData.CMIPersistentDataContainer;
 import net.Zrips.CMILib.Version.Version;
@@ -757,7 +758,7 @@ public final class JobsPaymentListener implements Listener {
                 preInv[i] = preInv[i].clone();
         }
 
-        CMIScheduler.runTaskLater(Jobs.getInstance(), () -> {
+        CMIScheduler.runAtEntityLater(Jobs.getInstance(), player, () -> {
             final ItemStack[] postInv = player.getInventory().getContents();
             int newItemsCount = 0;
 
@@ -1717,7 +1718,7 @@ public final class JobsPaymentListener implements Listener {
         CMIMaterial cmat = CMIMaterial.get(block);
 
         JobsPlayer jPlayer = Jobs.getPlayerManager().getJobsPlayer(p);
-        Material hand = CMIItemStack.getItemInMainHand(p).getType();
+        Material hand = Version.isCurrentEqualOrHigher(Version.v1_9_R1) ? event.getItem() != null ? event.getItem().getType() : Material.AIR : CMIItemStack.getItemInMainHand(p).getType();
 
         if (event.useInteractedBlock() != org.bukkit.event.Event.Result.DENY &&
             event.getAction() == Action.RIGHT_CLICK_BLOCK &&
@@ -1823,12 +1824,22 @@ public final class JobsPaymentListener implements Listener {
             // either it's version 1.13+ and we're trying to strip a normal log like oak,
             // or it's 1.16+ and we're trying to strip a fungi like warped stem
 
-            String type = block.getType().toString();
+            Material previous = block.getType();
+            String type = previous.toString();
+
+            final Location blockLocation = block.getLocation();
 
             if ((Version.isCurrentEqualOrHigher(Version.v1_13_R1) && (type.endsWith("_LOG") || type.endsWith("_WOOD"))) ||
                 (Version.isCurrentEqualOrHigher(Version.v1_16_R1) && (type.endsWith("_STEM") || type.endsWith("_HYPHAE"))) ||
                 (Version.isCurrentEqualOrHigher(Version.v1_20_R1) && (type.equalsIgnoreCase("BAMBOO_BLOCK")))) {
-                CMIScheduler.runTaskLater(plugin, () -> Jobs.action(jPlayer, new BlockActionInfo(block, ActionType.STRIPLOGS), block), 1);
+                CMIScheduler.runAtLocationLater(plugin, blockLocation, () -> {
+                    Block b = blockLocation.getBlock();
+
+                    if (previous.equals(b.getType()))
+                        return;
+
+                    Jobs.action(jPlayer, new BlockActionInfo(b, ActionType.STRIPLOGS), b);
+                }, 1);
             }
         }
     }

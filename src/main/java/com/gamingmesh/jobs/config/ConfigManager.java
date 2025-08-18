@@ -244,7 +244,7 @@ public class ConfigManager {
             }
 
             // These actions MUST be blocks
-            if (actionType.hasSubType(ActionSubType.BLOCK) && (!material.isBlock() || material.getMaterial().toString().equalsIgnoreCase("AIR"))) {
+            if (actionType.hasSubType(ActionSubType.BLOCK) && !actionType.hasSubType(ActionSubType.MATERIAL) && (!material.isBlock() || material.getMaterial().toString().equalsIgnoreCase("AIR"))) {
                 CMIMessages.consoleMessage("Job " + jobName + " has an invalid " + actionType.getName() + " type property: " + material
                     + " (" + myKey + ")! Material must be a block! Use \"/jobs blockinfo\" on a target block");
                 return null;
@@ -533,9 +533,11 @@ public class ConfigManager {
 
         for (YmlMaker conf : jobFiles) {
             Job job = loadJobs(conf.getConfig().getConfigurationSection(""));
-            if (job != null) {
-                map.put(job.getName(), job);
-            }
+            if (job == null)
+                continue;
+
+            map.put(job.getName(), job);
+
         }
 
         List<Job> jobs = new ArrayList<>();
