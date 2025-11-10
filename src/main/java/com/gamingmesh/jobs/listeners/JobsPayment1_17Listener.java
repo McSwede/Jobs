@@ -3,7 +3,6 @@ package com.gamingmesh.jobs.listeners;
 import org.bukkit.GameMode;
 import org.bukkit.Material;
 import org.bukkit.block.Block;
-import org.bukkit.entity.EntityType;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
@@ -11,6 +10,7 @@ import org.bukkit.event.Listener;
 import org.bukkit.event.block.Action;
 import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.inventory.ItemStack;
+import org.jetbrains.annotations.NotNull;
 
 import com.gamingmesh.jobs.Jobs;
 import com.gamingmesh.jobs.actions.BlockActionInfo;
@@ -47,25 +47,42 @@ public class JobsPayment1_17Listener implements Listener {
         if (event.getAction() != Action.RIGHT_CLICK_BLOCK)
             return;
 
-        ItemStack item = event.getItem();
-        if (item == null || item.getType() != Material.HONEYCOMB)
-            return;
-
         Block clicked = event.getClickedBlock();
         if (clicked == null)
             return;
 
-        Material mat = clicked.getType();
-
-        CMIMaterial cmatCmiMaterial = CMIMaterial.get(mat);
-
-        if (!cmatCmiMaterial.containsCriteria(CMIMC.COPPER) || cmatCmiMaterial.containsCriteria(CMIMC.WAXED))
+        ItemStack item = event.getItem();
+        if (item == null)
             return;
 
         // check if in spectator or adventure
         if (!player.getGameMode().equals(GameMode.SURVIVAL) && !player.getGameMode().equals(GameMode.CREATIVE))
             return;
 
-        Jobs.action(Jobs.getPlayerManager().getJobsPlayer(player), new BlockActionInfo(clicked, ActionType.VAX), clicked);
+        Material mat = clicked.getType();
+
+        CMIMaterial cmatCmiMaterial = CMIMaterial.get(mat);
+
+        if (item.getType() == Material.HONEYCOMB) {
+            if (!cmatCmiMaterial.containsCriteria(CMIMC.COPPER) || cmatCmiMaterial.containsCriteria(CMIMC.WAXED))
+                return;
+
+            Jobs.action(Jobs.getPlayerManager().getJobsPlayer(player), new BlockActionInfo(clicked, ActionType.WAX), clicked);
+            return;
+        }
+
+        @NotNull
+        CMIMaterial cmat = CMIMaterial.get(item);
+
+        if (!cmat.containsCriteria(CMIMC.AXE))
+            return;
+
+        if (!cmatCmiMaterial.containsCriteria(CMIMC.OXIDIZED) &&
+            !cmatCmiMaterial.containsCriteria(CMIMC.WEATHERED) &&
+            !cmatCmiMaterial.containsCriteria(CMIMC.EXPOSED) ||
+            cmatCmiMaterial.containsCriteria(CMIMC.WAXED))
+            return;
+
+        Jobs.action(Jobs.getPlayerManager().getJobsPlayer(player), new BlockActionInfo(clicked, ActionType.SCRAPE), clicked);
     }
 }

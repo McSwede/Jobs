@@ -18,78 +18,99 @@
 
 package com.gamingmesh.jobs.container;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.EnumSet;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
+
+import org.bukkit.inventory.ItemStack;
 
 import net.Zrips.CMILib.Container.CMIText;
+import net.Zrips.CMILib.Items.CMIMaterial;
 
 public enum ActionType {
-    BREAK(ActionSubType.BLOCK, ActionSubType.PROTECTED),
-    STRIPLOGS("StripLogs", ActionSubType.BLOCK),
-    TNTBREAK("TNTBreak", ActionSubType.BLOCK),
-    PLACE(ActionSubType.BLOCK, ActionSubType.PROTECTED),
-    KILL(ActionSubType.ENTITY),
-    MMKILL("MMKill", ActionSubType.ENTITY, ActionSubType.CUSTOM),
-    FISH(ActionSubType.MATERIAL),
-    PYROFISHINGPRO("PyroFishingPro", ActionSubType.CUSTOM),
-    CUSTOMFISHING("CustomFishing", ActionSubType.CUSTOM),
-    CRAFT(ActionSubType.MATERIAL),
-    VTRADE("VTrade", ActionSubType.MATERIAL),
-    SMELT(ActionSubType.MATERIAL),
-    BREW(ActionSubType.MATERIAL),
-    ENCHANT(ActionSubType.ENCHANTMENT, ActionSubType.MATERIAL),
-    REPAIR(ActionSubType.MATERIAL),
-    BREED(ActionSubType.ENTITY),
-    TAME(ActionSubType.ENTITY),
-    DYE(ActionSubType.MATERIAL),
-    SHEAR(ActionSubType.ENTITY),
-    MILK(ActionSubType.ENTITY),
-    EXPLORE(ActionSubType.CUSTOM),
-    EAT(ActionSubType.MATERIAL),
-    CUSTOMKILL("custom-kill", ActionSubType.ENTITY, ActionSubType.CUSTOM),
-    COLLECT(ActionSubType.MATERIAL),
-    BAKE(ActionSubType.MATERIAL),
-    BUCKET(ActionSubType.MATERIAL),
-    BRUSH(ActionSubType.BLOCK, ActionSubType.MATERIAL),
-    VAX(ActionSubType.BLOCK, ActionSubType.PROTECTED);
+	BREAK(CMIMaterial.DIAMOND_PICKAXE, ActionSubType.BLOCK, ActionSubType.PROTECTED),
+	STRIPLOGS("StripLogs", CMIMaterial.STRIPPED_ACACIA_LOG, ActionSubType.BLOCK),
+	TNTBREAK("TNTBreak", CMIMaterial.TNT, ActionSubType.BLOCK),
+	PLACE(CMIMaterial.BRICKS, ActionSubType.BLOCK, ActionSubType.PROTECTED),
+	KILL(CMIMaterial.DIAMOND_SWORD, ActionSubType.ENTITY),
+	MMKILL("MMKill", CMIMaterial.WOODEN_SWORD, ActionSubType.ENTITY, ActionSubType.CUSTOM),
+	FISH(CMIMaterial.FISHING_ROD, ActionSubType.MATERIAL),
+	PYROFISHINGPRO("PyroFishingPro", CMIMaterial.PUFFERFISH, ActionSubType.CUSTOM),
+	CUSTOMFISHING("CustomFishing", CMIMaterial.TROPICAL_FISH, ActionSubType.CUSTOM),
+	CRAFT(CMIMaterial.CRAFTING_TABLE, ActionSubType.MATERIAL),
+	VTRADE("VTrade", CMIMaterial.EMERALD, ActionSubType.MATERIAL),
+	SMELT(CMIMaterial.FURNACE, ActionSubType.MATERIAL),
+	BREW(CMIMaterial.BREWING_STAND, ActionSubType.MATERIAL),
+	ENCHANT(CMIMaterial.ENCHANTING_TABLE, ActionSubType.ENCHANTMENT, ActionSubType.MATERIAL),
+	REPAIR(CMIMaterial.ANVIL, ActionSubType.MATERIAL),
+	BREED(CMIMaterial.APPLE, ActionSubType.ENTITY),
+	TAME(CMIMaterial.LEAD, ActionSubType.ENTITY),
+	DYE(CMIMaterial.PURPLE_DYE, ActionSubType.MATERIAL),
+	SHEAR(CMIMaterial.SHEARS, ActionSubType.ENTITY),
+	MILK(CMIMaterial.MILK_BUCKET, ActionSubType.ENTITY),
+	EXPLORE(CMIMaterial.LEATHER_BOOTS, ActionSubType.CUSTOM),
+	EAT(CMIMaterial.BREAD, ActionSubType.MATERIAL),
+	CUSTOMKILL("custom-kill", CMIMaterial.PLAYER_HEAD, ActionSubType.ENTITY, ActionSubType.CUSTOM),
+	COLLECT(CMIMaterial.SWEET_BERRIES, ActionSubType.MATERIAL),
+	BAKE(CMIMaterial.CAKE, ActionSubType.MATERIAL),
+	BUCKET(CMIMaterial.BUCKET, ActionSubType.MATERIAL),
+	BRUSH(CMIMaterial.BRUSH, ActionSubType.BLOCK, ActionSubType.MATERIAL),
+	WAX(CMIMaterial.HONEYCOMB, ActionSubType.BLOCK, ActionSubType.PROTECTED),
+	SCRAPE(CMIMaterial.WOODEN_AXE, ActionSubType.BLOCK, ActionSubType.PROTECTED);
 
-    private String name;
+	private String name;
 
-    private EnumSet<ActionSubType> subTypes = EnumSet.noneOf(ActionSubType.class);
+	private List<ItemStack> guiItems = new ArrayList<ItemStack>();
 
-    ActionType(ActionSubType... subTypes) {
-        this(null, subTypes);
-    }
+	private EnumSet<ActionSubType> subTypes = EnumSet.noneOf(ActionSubType.class);
 
-    ActionType(String name, ActionSubType... subTypes) {
-        this.subTypes = (subTypes == null || subTypes.length == 0)
-            ? EnumSet.noneOf(ActionSubType.class)
-            : EnumSet.copyOf(Arrays.asList(subTypes));
-        this.name = name == null ? CMIText.firstToUpperCase(this.toString()) : name;
-    }
+	ActionType(CMIMaterial guiMat, ActionSubType... subTypes) {
+		this(null, guiMat, subTypes);
+	}
 
-    public String getName() {
-        return name;
-    }
+	ActionType(String name, CMIMaterial guiMat, ActionSubType... subTypes) {
+		this.subTypes = (subTypes == null || subTypes.length == 0) ? EnumSet.noneOf(ActionSubType.class) : EnumSet.copyOf(Arrays.asList(subTypes));
+		this.name = name == null ? CMIText.firstToUpperCase(this.toString()) : name;
+		getGuiItems().add(guiMat.newItemStack());
+	}
 
-    public boolean hasSubType(ActionSubType subType) {
-        return subTypes.contains(subType);
-    }
+	public String getName() {
+		return name;
+	}
 
-    public EnumSet<ActionSubType> getSubTypes() {
-        return subTypes;
-    }
+	public boolean hasSubType(ActionSubType subType) {
+		return subTypes.contains(subType);
+	}
 
-    public static ActionType getByName(String name) {
-        if (name != null) {
-            name = name.replace("_", "");
+	public EnumSet<ActionSubType> getSubTypes() {
+		return subTypes;
+	}
 
-            for (ActionType one : ActionType.values()) {
-                if (one.name.equalsIgnoreCase(name))
-                    return one;
-            }
-        }
+	public static ActionType getByName(String name) {
+		if (name != null) {
+			name = name.replace("_", "");
 
-        return null;
-    }
+			// Temp fix to rename vax to wax
+			if (name.equalsIgnoreCase("vax"))
+				name = "wax";
+
+			for (ActionType one : ActionType.values()) {
+				if (one.name.equalsIgnoreCase(name))
+					return one;
+			}
+		}
+
+		return null;
+	}
+
+	public List<ItemStack> getGuiItems() {
+		return guiItems;
+	}
+
+	public void setGuiItems(List<ItemStack> guiItems) {
+		this.guiItems = guiItems;
+	}
 }

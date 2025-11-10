@@ -5,29 +5,29 @@ import java.util.Set;
 
 public class ArchivedJobs {
 
-    private Set<JobProgression> jobs = new HashSet<>();
+	private Set<JobProgression> jobs = new HashSet<>();
 
-    public Set<JobProgression> getArchivedJobs() {
-	return jobs;
-    }
-
-    public JobProgression getArchivedJobProgression(Job job) {
-	for (JobProgression one : jobs) {
-	    if (one.getJob().isSame(job))
-		return one;
+	public Set<JobProgression> getArchivedJobs() {
+		return jobs;
 	}
-	return null;
-    }
 
-    public void setArchivedJobs(Set<JobProgression> jobs) {
-	this.jobs = jobs;
-    }
+	public JobProgression getArchivedJobProgression(Job job) {
+		for (JobProgression one : jobs) {
+			if (one.getJob().isSame(job))
+				return one;
+		}
+		return null;
+	}
 
-    public void addArchivedJob(JobProgression job) {
-	jobs.add(job);
-    }
+	public void setArchivedJobs(Set<JobProgression> jobs) {
+		this.jobs = jobs;
+	}
 
-    public void removeArchivedJob(Job job) {
-	jobs.remove(getArchivedJobProgression(job));
-    }
+	public void addArchivedJob(JobProgression job) {
+		jobs.add(job);
+	}
+
+	public void removeArchivedJob(Job job) {
+		jobs.remove(getArchivedJobProgression(job));
+	}
 }
