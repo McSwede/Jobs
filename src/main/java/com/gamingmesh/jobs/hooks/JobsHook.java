@@ -1,5 +1,7 @@
 package com.gamingmesh.jobs.hooks;
 
+import com.gamingmesh.jobs.listeners.JobsEvenMoreFishPaymentListener;
+import org.bukkit.Bukkit;
 import org.bukkit.plugin.PluginManager;
 import org.bukkit.plugin.java.JavaPlugin;
 
@@ -13,6 +15,8 @@ import com.gamingmesh.jobs.hooks.MythicMobs.MythicMobs5Listener;
 import com.gamingmesh.jobs.hooks.WorldGuard.WorldGuardManager;
 import com.gamingmesh.jobs.hooks.blockTracker.BlockTrackerManager;
 import com.gamingmesh.jobs.hooks.pyroFishingPro.PyroFishingProListener;
+import com.gamingmesh.jobs.hooks.roseStacker.RoseStackerHandler;
+import com.gamingmesh.jobs.hooks.roseStacker.RoseStackerListener;
 import com.gamingmesh.jobs.hooks.stackMob.StackMobManager;
 import com.gamingmesh.jobs.hooks.wildStacker.WildStackerHandler;
 import com.gamingmesh.jobs.listeners.JobsCustomFishingPaymentListener;
@@ -41,6 +45,26 @@ public enum JobsHook {
             JobsHook.stackMobHandler = new StackMobManager();
             printDetectedMessage(this);
             return true;
+        }
+    },
+    RoseStacker {
+        @Override
+        protected boolean init() {
+            if (!isPresent())
+                return false;
+
+            JobsHook.roseStackerHandler = new RoseStackerHandler();
+            printDetectedMessage(this);
+            return true;
+        }
+
+        @Override
+        public void registerListener() {
+            if (!isPresent())
+                return;
+
+            JavaPlugin.getPlugin(Jobs.class).getServer().getPluginManager().registerEvents(new RoseStackerListener(), JavaPlugin.getPlugin(Jobs.class));
+            printListenerMessage(this);
         }
     },
     WildStacker {
@@ -171,6 +195,16 @@ public enum JobsHook {
             JavaPlugin.getPlugin(Jobs.class).getServer().getPluginManager().registerEvents(new JobsCustomFishingPaymentListener(), JavaPlugin.getPlugin(Jobs.class));
             printListenerMessage(this);
         }
+    },
+    EvenMoreFish {
+        @Override
+        public void registerListener() {
+            if (!isPresent()) {
+                return;
+            }
+            Bukkit.getPluginManager().registerEvents(new JobsEvenMoreFishPaymentListener(), Jobs.getInstance());
+            printListenerMessage(this);
+        }
     };
 
     private boolean enabled;
@@ -214,6 +248,7 @@ public enum JobsHook {
     private static MythicMobs5 mythicManager;
     private static MyPetManager myPetManager;
     private static WorldGuardManager worldGuardManager;
+    private static RoseStackerHandler roseStackerHandler;
     private static StackMobManager stackMobHandler;
     private static WildStackerHandler wildStackerHandler;
     private static BlockTrackerManager blockTrackerManager;
@@ -227,6 +262,10 @@ public enum JobsHook {
 
     public static StackMobManager getStackMobManager() {
         return stackMobHandler;
+    }
+
+    public static RoseStackerHandler getRoseStackerManager() {
+        return roseStackerHandler;
     }
 
     public static WildStackerHandler getWildStackerManager() {
